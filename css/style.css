@@ -1,20 +1,48 @@
-body {
-    background-color: #0f1115;
-    color: #e4e6eb;
+/* =====================
+   VARIÁVEIS (PADRÃO)
+===================== */
+:root {
+    --bg-main: #0f1115;
+    --bg-secondary: #1a1d23;
+    --bg-hover: #21252b;
+    --bg-input: #121417;
+
+    --border-color: #2a2f38;
+
+    --text-main: #e4e6eb;
+    --text-secondary: #9aa4b2;
+    --text-white: #ffffff;
+
+    --primary: #4f8cff;
+    --danger: #ff4d4f;
+    --warning: #f0ad4e;
+    --success: #2ecc71;
 }
 
-#content-wrapper {
-    background-color: #0f1115;
-}
-
+/* =====================
+   BASE
+===================== */
+body,
+#content,
+#content-wrapper,
 .container-fluid {
-    background-color: #0f1115;
+    background-color: var(--bg-main);
+    color: var(--text-main);
 }
 
+/* =====================
+   NAVBAR / TOPO
+===================== */
+.topbar {
+    background-color: var(--bg-secondary) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* busca */
 .navbar-search .form-control {
-    background-color: #121417 !important;
-    border: 1px solid #2a2f38 !important;
-    color: #e4e6eb !important;
+    background-color: var(--bg-input) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
 }
 
 .navbar-search .form-control::placeholder {
@@ -22,176 +50,140 @@ body {
 }
 
 .navbar-search .form-control:focus {
-    background-color: #121417 !important;
-    border-color: #4f8cff !important;
-    color: #ffffff !important;
+    border-color: var(--primary) !important;
+    color: var(--text-white) !important;
     box-shadow: none !important;
 }
 
-/* botão da lupa */
 .navbar-search .btn {
-    background-color: #1f232a !important;
-    border: 1px solid #2a2f38 !important;
-    color: #e4e6eb !important;
+    background-color: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
 }
 
 .navbar-search .btn:hover {
-    background-color: #2a2f38 !important;
+    background-color: var(--bg-hover) !important;
 }
 
-.topbar {
-    background-color: #1a1d23 !important;
-    border-bottom: 1px solid #2a2f38;
-}
-
+/* =====================
+   SIDEBAR
+===================== */
 .sidebar {
     background: #16181d !important;
 }
 
-.sidebar .nav-item .nav-link {
+.sidebar .nav-link {
     color: #c9d1d9;
 }
 
-.sidebar .nav-item.active .nav-link {
-    background-color: #21252b;
-    color: #ffffff;
+.sidebar .nav-item.active .nav-link,
+.sidebar .nav-link:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-white);
 }
 
-.sidebar .nav-item .nav-link:hover {
-    background-color: #21252b;
-    color: #ffffff;
-}
-
-.sidebar .sidebar-brand {
-    color: #ffffff;
-}
-
+/* =====================
+   CARDS
+===================== */
 .card {
-    background-color: #1a1d23;
-    border: 1px solid #2a2f38;
-    color: #e4e6eb;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
 }
 
 .card-header {
     background-color: #1f232a;
-    border-bottom: 1px solid #2a2f38;
+    border-bottom: 1px solid var(--border-color);
 }
 
+/* =====================
+   TABELAS
+===================== */
 .table {
-    color: #e4e6eb;
-    background-color: #1a1d23;
-}
-
-.table-bordered {
-    border-color: #2a2f38;
-}
-
-.table-bordered th,
-.table-bordered td {
-    border-color: #2a2f38;
+    background-color: var(--bg-secondary);
+    color: var(--text-main);
 }
 
 .table thead th {
     background-color: #20242c;
-    color: #ffffff;
+    color: var(--text-white);
 }
 
+.table-bordered,
+.table-bordered th,
+.table-bordered td {
+    border-color: var(--border-color);
+}
+
+/* =====================
+   FORMULÁRIOS
+===================== */
 .form-control {
-    background-color: #0f1115;
-    border: 1px solid #2a2f38;
-    color: #e4e6eb;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
 }
 
 .form-control:focus {
-    background-color: #0f1115;
-    color: #ffffff;
-    border-color: #4f8cff;
+    border-color: var(--primary);
+    color: var(--text-white);
     box-shadow: none;
 }
 
-.input-group .btn {
-    background-color: #2a2f38;
-    border-color: #2a2f38;
-    color: #e4e6eb;
-}
-
+/* =====================
+   DROPDOWN
+===================== */
 .dropdown-menu {
-    background-color: #1a1d23;
-    border: 1px solid #2a2f38;
-    color: #e4e6eb;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
 }
 
 .dropdown-item {
-    color: #e4e6eb;
+    color: var(--text-main);
 }
 
 .dropdown-item:hover {
-    background-color: #21252b;
-    color: #ffffff;
+    background-color: var(--bg-hover);
+    color: var(--text-white);
 }
 
+/* =====================
+   LISTAS / FOOTER
+===================== */
 .list-group-item {
-    background-color: #1a1d23;
-    border-color: #2a2f38;
-    color: #e4e6eb;
+    background-color: var(--bg-secondary);
+    border-color: var(--border-color);
 }
 
 footer.sticky-footer {
-    background-color: #1a1d23;
-    border-top: 1px solid #2a2f38;
-    color: #9aa4b2;
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
 }
 
-.text-gray-800 {
-    color: #ffffff !important;
-}
-
-.text-gray-600,
-.text-gray-500,
-.text-muted {
-    color: #9aa4b2 !important;
-}
-
-.bg-white {
-    background-color: #1a1d23 !important;
-}
-
-.chart-area {
-    background-color: #1a1d23;
-}
-
-.modal-content {
-    background-color: #1a1d23;
-    border: 1px solid #2a2f38;
-    color: #e4e6eb;
-}
-
-.modal-header,
-.modal-footer {
-    border-color: #2a2f38;
-}
-
+/* =====================
+   BADGES (ALERTAS)
+===================== */
 .badge-danger {
-    background-color: #ff4d4f;
+    background-color: var(--danger);
 }
 
 .badge-warning {
-    background-color: #f0ad4e;
+    background-color: var(--warning);
     color: #111;
 }
 
 .badge-success {
-    background-color: #2ecc71;
+    background-color: var(--success);
 }
 
-.badge-secondary {
-    background-color: #6c757d;
+/* =====================
+   MODAL
+===================== */
+.modal-content {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
 }
 
-#content {
-    background-color: #0f1115;
-}
-
-body {
-    background-color: #0f1115;
+.modal-header,
+.modal-footer {
+    border-color: var(--border-color);
 }
