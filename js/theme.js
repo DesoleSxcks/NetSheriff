@@ -1,23 +1,19 @@
-if (localStorage.getItem("theme") === "dark") {
-    document.documentElement.classList.add("dark-mode");
+const isLightMode = localStorage.getItem("theme") === "light";
+
+if (isLightMode) {
+    document.documentElement.classList.add("light-mode");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
     const toggleBtn = document.getElementById("themeToggle");
 
-    // ajustar ícone inicial
-    if (localStorage.getItem("theme") === "dark") {
-        toggleBtn.innerText = "☀️";
-    }
-
     if (toggleBtn) {
+        toggleBtn.innerText = isLightMode ? "🌙" : "☀️";
+
         toggleBtn.addEventListener("click", () => {
-            document.documentElement.classList.toggle("dark-mode");
-
-            const isDark = document.documentElement.classList.contains("dark-mode");
-
-            localStorage.setItem("theme", isDark ? "dark" : "light");
-            toggleBtn.innerText = isDark ? "☀️" : "🌙";
+            const isNowLight = document.documentElement.classList.toggle("light-mode");
+            localStorage.setItem("theme", isNowLight ? "light" : "dark");
+            toggleBtn.innerText = isNowLight ? "🌙" : "☀️";
         });
     }
 });
