@@ -154,7 +154,7 @@ body,
 }
 
 footer.sticky-footer {
-    background-color: var(--bg-secondary);
+    background-color: var(--bg-secondary) !important;
     border-top: 1px solid var(--border-color);
     color: var(--text-secondary);
 }
@@ -186,4 +186,111 @@ footer.sticky-footer {
 .modal-header,
 .modal-footer {
     border-color: var(--border-color);
+}
+
+/* =====================
+   LIGHT MODE OVERRIDES
+===================== */
+.light-mode {
+    --bg-main: #ffffff;
+    --bg-secondary: #f8f9fa;
+    --bg-hover: #e9ecef;
+    --bg-input: #ffffff;
+
+    --border-color: #dee2e6;
+
+    --text-main: #212529;
+    --text-secondary: #6c757d;
+    --text-white: #ffffff;
+
+    --primary: #007bff;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --success: #28a745;
+}
+
+.light-mode .sidebar {
+    background: #f8f9fa !important;
+    border-right: 1px solid var(--border-color);
+}
+
+.light-mode .sidebar .nav-link {
+    color: var(--text-main);
+}
+
+.light-mode .sidebar .nav-item.active .nav-link,
+.light-mode .sidebar .nav-link:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.light-mode .topbar {
+    background-color: var(--bg-main) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.light-mode .card {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+}
+
+.light-mode .card-header {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.light-mode .table {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+}
+
+.light-mode .table thead th {
+    background-color: var(--bg-secondary);
+    color: var(--text-main);
+}
+
+.light-mode .form-control {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+}
+
+.light-mode .dropdown-menu {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+}
+
+.light-mode .dropdown-item {
+    color: var(--text-main);
+}
+
+.light-mode .dropdown-item:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.light-mode .list-group-item {
+    background-color: var(--bg-main);
+    border-color: var(--border-color);
+}
+
+.light-mode .modal-content {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-color);
+}
+
+/* Theme toggle button */
+#themeToggle {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+#themeToggle:focus {
+    box-shadow: none !important;
+}
+
+.light-mode footer.sticky-footer {
+    background-color: var(--bg-main) !important;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-secondary);
 }

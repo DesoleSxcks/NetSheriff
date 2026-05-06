@@ -137,13 +137,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 <td>${alert.description}</td>
                 <td><span class="badge ${alert.severity === "High" ? "badge-danger" : alert.severity === "Medium" ? "badge-warning" : "badge-success"}">${alert.severity}</span></td>
                 <td>${alert.status}</td>
-                <td><button class="btn btn-sm btn-info">Detalhes</button></td>
+                <td><button class="btn btn-sm btn-info alert-details-btn" data-id="${alert.id}">Detalhes</button></td>
             </tr>
         `).join("");
     };
 
     const updateAlertFilters = () => {
         renderAlertsTable(filterAlerts());
+        // Add event listeners for details buttons
+        document.querySelectorAll('.alert-details-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const alertId = e.target.getAttribute('data-id');
+                const alert = ALERTS_DEFAULT.find(a => a.id == alertId);
+                if (alert) {
+                    alert(`Detalhes do Alerta ${alert.id}:\n\nTipo: ${alert.type}\nDescrição: ${alert.description}\nSeveridade: ${alert.severity}\nStatus: ${alert.status}\nTimestamp: ${alert.timestamp}`);
+                }
+            });
+        });
     };
 
     const getTableData = (tableId) => {
@@ -358,6 +368,18 @@ document.addEventListener("DOMContentLoaded", () => {
             event.preventDefault();
             const action = link.innerText.trim();
             alert(`Ação de menu: ${action}. Esta funcionalidade está simulada com dados falsos.`);
+        });
+    });
+
+    // Logs buttons
+    document.querySelectorAll('.block-ip-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            alert('IP bloqueado com sucesso!');
+        });
+    });
+    document.querySelectorAll('.investigate-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            alert('Investigação iniciada. Resultados: Nenhuma ameaça adicional encontrada.');
         });
     });
 });
