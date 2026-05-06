@@ -1,3 +1,100 @@
+        // --- DASHBOARD DINÂMICO ---
+        async function initDashboard() {
+            try {
+                // Busca dados
+                const [alertsRes, rulesRes] = await Promise.all([
+                    fetch("http://localhost:3000/alerts"),
+                    fetch("http://localhost:3000/rules")
+                ]);
+                if (!alertsRes.ok || !rulesRes.ok) throw new Error("Erro ao buscar dados do dashboard");
+                const alerts = await alertsRes.json();
+                const rules = await rulesRes.json();
+
+                // Atualiza Card Alertas Críticos
+                const critCard = document.querySelector(".text-danger.text-uppercase.mb-1");
+                if (critCard) {
+                    const critNum = critCard.parentElement.querySelector(".h5");
+                    if (critNum) {
+                        const highCount = alerts.filter(a => a.severity === "High").length;
+                        critNum.textContent = highCount;
+                    }
+                }
+
+                // Atualiza Card Regras Ativas
+                const regrasCard = document.querySelector(".text-success.text-uppercase.mb-1");
+                if (regrasCard) {
+                    const regrasNum = regrasCard.parentElement.querySelector(".h5");
+                    if (regrasNum) {
+                        regrasNum.textContent = rules.length;
+                    }
+                }
+
+                // Atualiza tabela Alertas Recentes
+                const alertsTable = document.getElementById("dashboardAlertsTable");
+                if (alertsTable) {
+                    const tbody = alertsTable.querySelector("tbody");
+                    if (tbody) {
+                        tbody.innerHTML = "";
+                        alerts.slice(-3).reverse().forEach(alert => {
+                            const tr = document.createElement("tr");
+                            // ID
+                            const tdId = document.createElement("td");
+                            tdId.textContent = alert.id;
+                            tr.appendChild(tdId);
+                            // Timestamp
+                            const tdTs = document.createElement("td");
+                            tdTs.textContent = alert.timestamp;
+                            tr.appendChild(tdTs);
+                            // Tipo
+                            const tdType = document.createElement("td");
+                            tdType.textContent = alert.type;
+                            tr.appendChild(tdType);
+                            // Descrição
+                            const tdDesc = document.createElement("td");
+                            tdDesc.textContent = alert.description;
+                            tr.appendChild(tdDesc);
+                            // Severidade
+                            const tdSev = document.createElement("td");
+                            const span = document.createElement("span");
+                            span.textContent = alert.severity;
+                            if (alert.severity === "High") span.classList.add("badge", "badge-danger");
+                            else if (alert.severity === "Medium") span.classList.add("badge", "badge-warning");
+                            else span.classList.add("badge", "badge-success");
+                            tdSev.appendChild(span);
+                            tr.appendChild(tdSev);
+                            tbody.appendChild(tr);
+                        });
+                    }
+                }
+
+                // Atualiza tabela Regras Rápidas
+                const rulesTable = document.getElementById("dashboardRulesTable");
+                if (rulesTable) {
+                    const tbody = rulesTable.querySelector("tbody");
+                    if (tbody) {
+                        tbody.innerHTML = "";
+                        rules.slice(0, 3).forEach(rule => {
+                            const tr = document.createElement("tr");
+                            // ID
+                            const tdId = document.createElement("td");
+                            tdId.textContent = rule.id;
+                            tr.appendChild(tdId);
+                            // Nome
+                            const tdName = document.createElement("td");
+                            tdName.textContent = rule.name;
+                            tr.appendChild(tdName);
+                            // Ação
+                            const tdAction = document.createElement("td");
+                            tdAction.textContent = rule.action;
+                            tr.appendChild(tdAction);
+                            tbody.appendChild(tr);
+                        });
+                    }
+                }
+            } catch (error) {
+                alert("Falha ao carregar dashboard: " + error.message);
+            }
+        }
     // --- INTEGRAÇÃO MONITORAMENTO ---
     async function renderTrafficChart() {
         const ctx = document.getElementById("trafficChart");
@@ -542,10 +639,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
 
-    // Inicialização específica para página de monitoramento
+
+    // Inicialização específica para página de monitoramento e dashboard
     if (window.location.pathname.endsWith("monitoring.html")) {
         renderTrafficChart();
         renderRecentLogsSidebar();
+    }
+    if (window.location.pathname.endsWith("index.html") || window.location.pathname === "/") {
+        initDashboard();
     }
 
     // Inicializa alertas ao carregar a página
