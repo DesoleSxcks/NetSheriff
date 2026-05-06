@@ -1,4 +1,4 @@
-# 🛡️ NetSheriff - Sistema de Monitoramento e Detecção de Intrusão
+# NetSheriff - Sistema de Monitoramento e Detecção de Intrusão
 
 O **NetSheriff** é uma aplicação Web front-end que atua como o painel de controle de um Sistema de Detecção de Intrusão (IDS) simplificado. Ele permite o monitoramento do tráfego de rede para identificar atividades suspeitas, gerenciar regras de segurança e visualizar alertas gerados pelo sistema.
 
@@ -6,7 +6,7 @@ Este projeto foi desenvolvido como requisito avaliativo da disciplina de Program
 
 ---
 
-## 🚀 Funcionalidades Principais
+## Funcionalidades Principais
 
 * **Dashboard Analítico:** Visão geral da rede, estatísticas de tráfego e resumo dos alertas mais recentes.
 * **Gerenciamento de Regras (CRUD):** Criação, leitura, atualização (ativar/desativar e edição) e remoção de regras de detecção de anomalias (ex: detecção de DDoS, Port Scan).
@@ -15,7 +15,7 @@ Este projeto foi desenvolvido como requisito avaliativo da disciplina de Program
 
 ---
 
-## 🛠️ Tecnologias e Ferramentas Utilizadas
+## Tecnologias e Ferramentas Utilizadas
 
 * **HTML5 & CSS3:** Estruturação semântica e estilização do layout.
 * **JavaScript (ES6+):** Lógica da aplicação, manipulação do DOM e consumo de API.
@@ -24,7 +24,7 @@ Este projeto foi desenvolvido como requisito avaliativo da disciplina de Program
 
 ---
 
-## ⚙️ Como Executar o Projeto Localmente
+## Como Executar o Projeto Localmente
 
 Como a aplicação consome dados de uma API, é necessário iniciar o servidor local (`json-server`) antes de abrir as páginas HTML. Siga os passos abaixo:
 
