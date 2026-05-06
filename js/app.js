@@ -19,58 +19,164 @@ document.addEventListener("DOMContentLoaded", () => {
         return csv;
     };
 
-    const RULES_STORAGE_KEY = "netsheriffRules";
 
-    const getDefaultRules = () => [
-        { id: 1, name: "Block High Traffic", condition: "traffic > 1000 packets/min", action: "Alert", status: "Ativa" },
-        { id: 2, name: "Detect Port Scans", condition: "ports scanned > 10", action: "Block", status: "Ativa" },
-        { id: 3, name: "Monitor Anomalies", condition: "unusual patterns detected", action: "Log", status: "Inativa" },
-        { id: 4, name: "SQL Injection Detection", condition: "SQL patterns in HTTP requests", action: "Block", status: "Ativa" },
-    ];
+    // Funções CRUD assíncronas para regras usando Fetch
+    const RULES_API_URL = "http://localhost:3000/rules";
 
-    const loadRules = () => {
+    async function fetchRules() {
         try {
-            const raw = localStorage.getItem(RULES_STORAGE_KEY);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                if (Array.isArray(parsed) && parsed.length) {
-                    return parsed;
-                }
-            }
+            const response = await fetch(RULES_API_URL);
+            if (!response.ok) throw new Error("Erro ao buscar regras");
+            return await response.json();
         } catch (error) {
-            console.warn("Falha ao carregar regras do localStorage", error);
+            alert("Falha ao carregar regras: " + error.message);
+            return [];
         }
-        return getDefaultRules();
-    };
+    }
 
-    const saveRules = (rules) => {
-        localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(rules));
-    };
+    async function createRule(rule) {
+        try {
+            const response = await fetch(RULES_API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(rule)
+            });
+            if (!response.ok) throw new Error("Erro ao criar regra");
+            return await response.json();
+        } catch (error) {
+            alert("Falha ao criar regra: " + error.message);
+            return null;
+        }
+    }
 
-    const renderRulesTable = () => {
+    async function updateRuleStatus(id, status) {
+        try {
+            const response = await fetch(`${RULES_API_URL}/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status })
+            });
+            if (!response.ok) throw new Error("Erro ao atualizar status da regra");
+            return await response.json();
+        } catch (error) {
+            alert("Falha ao atualizar status: " + error.message);
+            return null;
+        }
+    }
+
+    async function updateRuleName(id, name) {
+        try {
+            const response = await fetch(`${RULES_API_URL}/${id}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name })
+            });
+            if (!response.ok) throw new Error("Erro ao editar regra");
+            return await response.json();
+        } catch (error) {
+            alert("Falha ao editar regra: " + error.message);
+            return null;
+        }
+    }
+
+    async function deleteRule(id) {
+        try {
+            const response = await fetch(`${RULES_API_URL}/${id}`, {
+                method: "DELETE"
+            });
+            if (!response.ok) throw new Error("Erro ao remover regra");
+            return true;
+        } catch (error) {
+            alert("Falha ao remover regra: " + error.message);
+            return false;
+        }
+    }
+
+
+    async function renderRulesTable() {
         const tableBody = document.querySelector("#rulesTable tbody");
-        if (!tableBody) {
-            return;
-        }
-        const rules = loadRules();
-        tableBody.innerHTML = rules.map(rule => {
-            const active = rule.status.trim().toLowerCase() === "ativa";
-            return `
-                <tr>
-                    <td>${rule.id}</td>
-                    <td>${rule.name}</td>
-                    <td>${rule.condition}</td>
-                    <td>${rule.action}</td>
-                    <td><span class="badge ${active ? "badge-success" : "badge-secondary"}">${rule.status}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-warning rule-action-btn" data-rule-id="${rule.id}" data-action="edit">Editar</button>
-                        <button class="btn btn-sm ${active ? "btn-danger" : "btn-success"} rule-action-btn" data-rule-id="${rule.id}" data-action="toggle">${active ? "Desativar" : "Ativar"}</button>
-                        <button class="btn btn-sm btn-outline-danger rule-action-btn" data-rule-id="${rule.id}" data-action="remove">Remover</button>
-                    </td>
-                </tr>
-            `;
-        }).join("");
-    };
+        if (!tableBody) return;
+        tableBody.innerHTML = "";
+        const rules = await fetchRules();
+        rules.forEach(rule => {
+            const tr = document.createElement("tr");
+
+            // ID
+            const tdId = document.createElement("td");
+            tdId.textContent = rule.id;
+            tr.appendChild(tdId);
+
+            // Nome
+            const tdName = document.createElement("td");
+            tdName.textContent = rule.name;
+            tr.appendChild(tdName);
+
+            // Condição
+            const tdCond = document.createElement("td");
+            tdCond.textContent = rule.condition;
+            tr.appendChild(tdCond);
+
+            // Ação
+            const tdAction = document.createElement("td");
+            tdAction.textContent = rule.action;
+            tr.appendChild(tdAction);
+
+            // Status
+            const tdStatus = document.createElement("td");
+            const span = document.createElement("span");
+            const active = rule.status && rule.status.trim().toLowerCase() === "ativa";
+            span.textContent = rule.status;
+            span.classList.add("badge", active ? "badge-success" : "badge-secondary");
+            tdStatus.appendChild(span);
+            tr.appendChild(tdStatus);
+
+            // Ações
+            const tdBtns = document.createElement("td");
+
+            // Editar
+            const btnEdit = document.createElement("button");
+            btnEdit.textContent = "Editar";
+            btnEdit.classList.add("btn", "btn-sm", "btn-warning", "rule-action-btn");
+            btnEdit.addEventListener("click", async (e) => {
+                e.preventDefault();
+                const newName = prompt("Editar nome da regra:", rule.name);
+                if (newName && newName !== rule.name) {
+                    await updateRuleName(rule.id, newName);
+                    renderRulesTable();
+                    alert("Regra atualizada com sucesso.");
+                }
+            });
+            tdBtns.appendChild(btnEdit);
+
+            // Ativar/Desativar
+            const btnToggle = document.createElement("button");
+            btnToggle.textContent = active ? "Desativar" : "Ativar";
+            btnToggle.classList.add("btn", "btn-sm", active ? "btn-danger" : "btn-success", "rule-action-btn");
+            btnToggle.addEventListener("click", async (e) => {
+                e.preventDefault();
+                await updateRuleStatus(rule.id, active ? "Inativa" : "Ativa");
+                renderRulesTable();
+            });
+            tdBtns.appendChild(btnToggle);
+
+            // Remover
+            const btnRemove = document.createElement("button");
+            btnRemove.textContent = "Remover";
+            btnRemove.classList.add("btn", "btn-sm", "btn-outline-danger", "rule-action-btn");
+            btnRemove.addEventListener("click", async (e) => {
+                e.preventDefault();
+                if (confirm(`Remover regra "${rule.name}"? Esta ação não pode ser desfeita.`)) {
+                    await deleteRule(rule.id);
+                    renderRulesTable();
+                    alert(`Regra "${rule.name}" removida.`);
+                }
+            });
+            tdBtns.appendChild(btnRemove);
+
+            tr.appendChild(tdBtns);
+            tableBody.appendChild(tr);
+        });
+    }
 
     const showFakeSearch = (input) => {
         const query = input.value.trim();
@@ -81,12 +187,22 @@ document.addEventListener("DOMContentLoaded", () => {
         alert(`Resultados falsos encontrados para \"${query}\":\n- 12 eventos relacionados\n- 3 alertas críticos\n- 1 regra recomendada`);
     };
 
-    const ALERTS_DEFAULT = [
-        { id: 1, timestamp: "2026-03-15 10:00:00", type: "Suspicious Traffic", description: "High volume from unknown IP 192.168.1.100", severity: "High", status: "Ativo" },
-        { id: 2, timestamp: "2026-03-15 10:05:00", type: "Port Scan", description: "Multiple port attempts from IP 10.0.0.5", severity: "Medium", status: "Resolvido" },
-        { id: 3, timestamp: "2026-03-15 10:10:00", type: "Anomaly Detected", description: "Unusual pattern in network traffic from subnet 192.168.1.0/24", severity: "Low", status: "Ativo" },
-        { id: 4, timestamp: "2026-03-15 09:45:00", type: "Suspicious Traffic", description: "Abnormal data transfer rate detected", severity: "High", status: "Ativo" },
-    ];
+
+    // Variável para armazenar alertas carregados da API
+    let currentAlerts = [];
+
+    // Função assíncrona para buscar alertas da API
+    async function fetchAlerts() {
+        try {
+            const response = await fetch("http://localhost:3000/alerts");
+            if (!response.ok) throw new Error("Erro ao buscar alertas");
+            const data = await response.json();
+            currentAlerts = Array.isArray(data) ? data : [];
+        } catch (error) {
+            alert("Falha ao carregar alertas: " + error.message);
+            currentAlerts = [];
+        }
+    }
 
     const parseAlertDate = (timestamp) => {
         const date = new Date(timestamp);
@@ -98,7 +214,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return el ? el.value : null;
     };
 
-    const filterAlerts = () => {
+
+    function filterAlerts() {
         const severity = getFilterValue("severityFilter");
         const type = getFilterValue("typeFilter");
         const from = getFilterValue("dateFromFilter");
@@ -106,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const fromDate = from ? new Date(from) : null;
         const toDate = to ? new Date(new Date(to).setHours(23, 59, 59, 999)) : null;
 
-        return ALERTS_DEFAULT.filter(alert => {
+        return currentAlerts.filter(alert => {
             if (severity && severity !== "all" && alert.severity !== severity) {
                 return false;
             }
@@ -122,39 +239,77 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             return true;
         });
-    };
+    }
 
-    const renderAlertsTable = (alerts) => {
+
+    function renderAlertsTable(alerts) {
         const tableBody = document.querySelector("#alertsListTable tbody");
-        if (!tableBody) {
-            return;
-        }
-        tableBody.innerHTML = alerts.map(alert => `
-            <tr>
-                <td>${alert.id}</td>
-                <td>${alert.timestamp}</td>
-                <td>${alert.type}</td>
-                <td>${alert.description}</td>
-                <td><span class="badge ${alert.severity === "High" ? "badge-danger" : alert.severity === "Medium" ? "badge-warning" : "badge-success"}">${alert.severity}</span></td>
-                <td>${alert.status}</td>
-                <td><button class="btn btn-sm btn-info alert-details-btn" data-id="${alert.id}">Detalhes</button></td>
-            </tr>
-        `).join("");
-    };
+        if (!tableBody) return;
+        tableBody.innerHTML = "";
+        alerts.forEach(alert => {
+            const tr = document.createElement("tr");
 
-    const updateAlertFilters = () => {
-        renderAlertsTable(filterAlerts());
-        // Add event listeners for details buttons
-        document.querySelectorAll('.alert-details-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const alertId = e.target.getAttribute('data-id');
-                const alert = ALERTS_DEFAULT.find(a => a.id == alertId);
-                if (alert) {
-                    alert(`Detalhes do Alerta ${alert.id}:\n\nTipo: ${alert.type}\nDescrição: ${alert.description}\nSeveridade: ${alert.severity}\nStatus: ${alert.status}\nTimestamp: ${alert.timestamp}`);
-                }
+            // ID
+            const tdId = document.createElement("td");
+            tdId.textContent = alert.id;
+            tr.appendChild(tdId);
+
+            // Timestamp
+            const tdTimestamp = document.createElement("td");
+            tdTimestamp.textContent = alert.timestamp;
+            tr.appendChild(tdTimestamp);
+
+            // Tipo
+            const tdType = document.createElement("td");
+            tdType.textContent = alert.type;
+            tr.appendChild(tdType);
+
+            // Descrição
+            const tdDesc = document.createElement("td");
+            tdDesc.textContent = alert.description;
+            tr.appendChild(tdDesc);
+
+            // Severidade
+            const tdSev = document.createElement("td");
+            const span = document.createElement("span");
+            span.textContent = alert.severity;
+            if (alert.severity === "High") {
+                span.classList.add("badge", "badge-danger");
+            } else if (alert.severity === "Medium") {
+                span.classList.add("badge", "badge-warning");
+            } else {
+                span.classList.add("badge", "badge-success");
+            }
+            tdSev.appendChild(span);
+            tr.appendChild(tdSev);
+
+            // Status
+            const tdStatus = document.createElement("td");
+            tdStatus.textContent = alert.status;
+            tr.appendChild(tdStatus);
+
+            // Botão Detalhes
+            const tdBtn = document.createElement("td");
+            const btn = document.createElement("button");
+            btn.textContent = "Detalhes";
+            btn.classList.add("btn", "btn-sm", "btn-info", "alert-details-btn");
+            btn.addEventListener("click", () => {
+                alert(
+                    `Detalhes do Alerta ${alert.id}:\n\n` +
+                    `Tipo: ${alert.type}\nDescrição: ${alert.description}\nSeveridade: ${alert.severity}\nStatus: ${alert.status}\nTimestamp: ${alert.timestamp}`
+                );
             });
+            tdBtn.appendChild(btn);
+            tr.appendChild(tdBtn);
+
+            tableBody.appendChild(tr);
         });
-    };
+    }
+
+
+    function updateAlertFilters() {
+        renderAlertsTable(filterAlerts());
+    }
 
     const getTableData = (tableId) => {
         const table = document.getElementById(tableId);
@@ -194,7 +349,8 @@ document.addEventListener("DOMContentLoaded", () => {
         downloadFile("logs-export.csv", csv);
     };
 
-    const handleSaveRule = () => {
+
+    async function handleSaveRule() {
         const name = document.getElementById("ruleName").value.trim();
         const condition = document.getElementById("ruleCondition").value.trim();
         const action = document.getElementById("ruleAction").value.trim();
@@ -204,82 +360,26 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const rules = loadRules();
-        const newId = rules.reduce((maxId, rule) => Math.max(maxId, rule.id), 0) + 1;
-        rules.push({
-            id: newId,
+        const newRule = {
             name,
             condition,
             action,
-            status: "Ativa",
-        });
-        saveRules(rules);
-        renderRulesTable();
-
-        document.getElementById("ruleName").value = "";
-        document.getElementById("ruleCondition").value = "";
-        document.getElementById("ruleAction").selectedIndex = 0;
-
-        if (window.$) {
-            window.$("#addRuleModal").modal("hide");
-        }
-        alert("Regra adicionada com sucesso.");
-    };
-
-    const handleRuleAction = (button) => {
-        const row = button.closest("tr");
-        const statusBadge = row.querySelector("span.badge");
-        const currentAction = button.dataset.action;
-
-        if (currentAction === "edit") {
-            const ruleId = Number(button.dataset.ruleId);
-            const rules = loadRules();
-            const rule = rules.find(item => item.id === ruleId);
-            if (!rule) {
-                return;
-            }
-            const newName = prompt("Editar nome da regra:", rule.name);
-            if (newName) {
-                rule.name = newName;
-                saveRules(rules);
-                renderRulesTable();
-                alert("Regra atualizada com sucesso.");
-            }
-            return;
-        }
-
-        if (currentAction === "remove") {
-            handleRemoveRule(button);
-            return;
-        }
-
-        const ruleId = Number(button.dataset.ruleId);
-        const rules = loadRules();
-        const rule = rules.find(item => item.id === ruleId);
-        if (!rule) {
-            return;
-        }
-        const isActive = rule.status.trim().toLowerCase() === "ativa";
-        rule.status = isActive ? "Inativa" : "Ativa";
-        saveRules(rules);
-        renderRulesTable();
-    };
-
-    const handleRemoveRule = (button) => {
-        const ruleId = Number(button.dataset.ruleId);
-        const rules = loadRules();
-        const rule = rules.find(item => item.id === ruleId);
-        if (!rule) {
-            return;
-        }
-        const confirmRemove = confirm(`Remover regra "${rule.name}"? Esta ação não pode ser desfeita.`);
-        if (confirmRemove) {
-            const updated = rules.filter(item => item.id !== ruleId);
-            saveRules(updated);
+            status: "Ativa"
+        };
+        const created = await createRule(newRule);
+        if (created) {
             renderRulesTable();
-            alert(`Regra "${rule.name}" removida.`);
+            document.getElementById("ruleName").value = "";
+            document.getElementById("ruleCondition").value = "";
+            document.getElementById("ruleAction").selectedIndex = 0;
+            if (window.$) {
+                window.$("#addRuleModal").modal("hide");
+            }
+            alert("Regra adicionada com sucesso.");
         }
-    };
+    }
+
+    // Funções handleRuleAction e handleRemoveRule removidas pois agora os eventos são atrelados diretamente na renderização dinâmica
 
     const handleAlertDetails = (button) => {
         const row = button.closest("tr");
@@ -321,7 +421,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    const alertsTable = document.getElementById("alertsListTable");
+
+    // Função de inicialização dos alertas
+    async function initAlerts() {
+        await fetchAlerts();
+        renderAlertsTable(filterAlerts());
+    }
+
     const severityFilter = document.getElementById("severityFilter");
     const typeFilter = document.getElementById("typeFilter");
     const dateFromFilter = document.getElementById("dateFromFilter");
@@ -340,26 +446,9 @@ document.addEventListener("DOMContentLoaded", () => {
         dateToFilter.addEventListener("change", updateAlertFilters);
     }
 
-    if (alertsTable) {
-        renderAlertsTable(filterAlerts());
-        alertsTable.addEventListener("click", (event) => {
-            const button = event.target.closest("button.btn-info");
-            if (button) {
-                handleAlertDetails(button);
-            }
-        });
-    }
+    // Inicializa alertas ao carregar a página
+    initAlerts();
 
-    const rulesTable = document.getElementById("rulesTable");
-    if (rulesTable) {
-        rulesTable.addEventListener("click", (event) => {
-            const button = event.target.closest("button.rule-action-btn");
-            if (button) {
-                event.preventDefault();
-                handleRuleAction(button);
-            }
-        });
-    }
 
     renderRulesTable();
 
