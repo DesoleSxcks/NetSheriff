@@ -64,5 +64,9 @@
       "severity": "Médio",
       "actionType": "investigate"
     }
-  ]
+  ],
+  "traffic": {
+    "labels": ["00h", "04h", "08h", "12h", "16h", "20h"],
+    "data": [500, 1200, 800, 2500, 1000, 600]
+  }
 }

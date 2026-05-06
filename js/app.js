@@ -1,3 +1,98 @@
+    // --- INTEGRAÇÃO MONITORAMENTO ---
+    async function renderTrafficChart() {
+        const ctx = document.getElementById("trafficChart");
+        if (!ctx) return;
+        try {
+            const response = await fetch("http://localhost:3000/traffic");
+            if (!response.ok) throw new Error("Erro ao buscar dados de tráfego");
+            const { labels, data } = await response.json();
+            new window.Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Tráfego',
+                        data: data,
+                        borderColor: '#4e73df',
+                        backgroundColor: 'rgba(78,115,223,0.05)',
+                        fill: true,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: { display: true },
+                        y: { display: true }
+                    }
+                }
+            });
+        } catch (error) {
+            alert("Falha ao renderizar gráfico de tráfego: " + error.message);
+        }
+    }
+
+    async function renderRecentLogsSidebar() {
+        const listGroup = document.querySelector('.list-group.list-group-flush');
+        if (!listGroup) return;
+        listGroup.innerHTML = "";
+        try {
+            const response = await fetch("http://localhost:3000/alerts");
+            if (!response.ok) throw new Error("Erro ao buscar logs recentes");
+            const logs = await response.json();
+            logs.slice(0, 6).forEach(log => {
+                const a = document.createElement('a');
+                a.href = "#";
+                a.classList.add('list-group-item', 'list-group-item-action');
+
+                const divTop = document.createElement('div');
+                divTop.classList.add('d-flex', 'w-100', 'justify-content-between');
+
+                const h6 = document.createElement('h6');
+                h6.classList.add('mb-1');
+                h6.textContent = log.type || 'Log';
+
+                const smallTime = document.createElement('small');
+                // Mostra apenas hora/minuto se possível
+                if (log.timestamp) {
+                    const date = new Date(log.timestamp);
+                    smallTime.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                } else {
+                    smallTime.textContent = "-";
+                }
+
+                divTop.appendChild(h6);
+                divTop.appendChild(smallTime);
+
+                const p = document.createElement('p');
+                p.classList.add('mb-1');
+                if (log.description) {
+                    p.textContent = log.description;
+                } else if (log.details) {
+                    p.textContent = log.details;
+                } else {
+                    p.textContent = "-";
+                }
+
+                const smallSev = document.createElement('small');
+                smallSev.classList.add('text-muted');
+                smallSev.textContent = `Severidade: ${log.severity || '-'}`;
+
+                a.appendChild(divTop);
+                a.appendChild(p);
+                a.appendChild(smallSev);
+                listGroup.appendChild(a);
+            });
+        } catch (error) {
+            const err = document.createElement('div');
+            err.textContent = "Erro ao carregar logs recentes.";
+            err.classList.add('text-danger', 'p-2');
+            listGroup.appendChild(err);
+        }
+    }
 document.addEventListener("DOMContentLoaded", () => {
     const downloadFile = (filename, content, mimeType = "text/csv;charset=utf-8;") => {
         const blob = new Blob([content], { type: mimeType });
@@ -444,6 +539,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     if (dateToFilter) {
         dateToFilter.addEventListener("change", updateAlertFilters);
+    }
+
+
+    // Inicialização específica para página de monitoramento
+    if (window.location.pathname.endsWith("monitoring.html")) {
+        renderTrafficChart();
+        renderRecentLogsSidebar();
     }
 
     // Inicializa alertas ao carregar a página
