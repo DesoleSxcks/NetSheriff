@@ -1,4 +1,6 @@
-        // --- DASHBOARD DINÂMICO ---
+import { fetchRules, updateRuleStatus, updateRuleName, deleteRule } from './api.js';
+
+// --- DASHBOARD DINÂMICO ---
         async function initDashboard() {
             try {
                 // Busca dados
@@ -215,17 +217,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Funções CRUD assíncronas para regras usando Fetch
     const RULES_API_URL = "http://localhost:3000/rules";
 
-    async function fetchRules() {
-        try {
-            const response = await fetch(RULES_API_URL);
-            if (!response.ok) throw new Error("Erro ao buscar regras");
-            return await response.json();
-        } catch (error) {
-            alert("Falha ao carregar regras: " + error.message);
-            return [];
-        }
-    }
-
     async function createRule(rule) {
         try {
             const response = await fetch(RULES_API_URL, {
@@ -241,55 +232,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    async function updateRuleStatus(id, status) {
-        try {
-            const response = await fetch(`${RULES_API_URL}/${id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status })
-            });
-            if (!response.ok) throw new Error("Erro ao atualizar status da regra");
-            return await response.json();
-        } catch (error) {
-            alert("Falha ao atualizar status: " + error.message);
-            return null;
-        }
-    }
 
-    async function updateRuleName(id, name) {
-        try {
-            const response = await fetch(`${RULES_API_URL}/${id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name })
-            });
-            if (!response.ok) throw new Error("Erro ao editar regra");
-            return await response.json();
-        } catch (error) {
-            alert("Falha ao editar regra: " + error.message);
-            return null;
-        }
-    }
+async function renderRulesTable() {
+    const tableBody = document.querySelector("#rulesTable tbody");
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = "";
 
-    async function deleteRule(id) {
-        try {
-            const response = await fetch(`${RULES_API_URL}/${id}`, {
-                method: "DELETE"
-            });
-            if (!response.ok) throw new Error("Erro ao remover regra");
-            return true;
-        } catch (error) {
-            alert("Falha ao remover regra: " + error.message);
-            return false;
-        }
-    }
-
-
-    async function renderRulesTable() {
-        const tableBody = document.querySelector("#rulesTable tbody");
-        if (!tableBody) return;
-        tableBody.innerHTML = "";
+    try {
         const rules = await fetchRules();
+
+        if (!rules || rules.length === 0) {
+            tableBody.innerHTML = "<tr><td colspan='6' class='text-center'>Nenhuma regra cadastrada.</td></tr>";
+            return;
+        }
+
         rules.forEach(rule => {
             const tr = document.createElement("tr");
 
@@ -313,62 +270,63 @@ document.addEventListener("DOMContentLoaded", () => {
             tdAction.textContent = rule.action;
             tr.appendChild(tdAction);
 
-            // Status
+            // Status (Lógica de Badge)
             const tdStatus = document.createElement("td");
             const span = document.createElement("span");
-            const active = rule.status && rule.status.trim().toLowerCase() === "ativa";
+
+            // Ajuste na verificação do status (Case Sensitive)
+            const isActive = rule.status === "Ativa"; 
             span.textContent = rule.status;
-            span.classList.add("badge", active ? "badge-success" : "badge-secondary");
+            span.classList.add("badge", isActive ? "badge-success" : "badge-secondary");
             tdStatus.appendChild(span);
             tr.appendChild(tdStatus);
 
-            // Ações
+            // Coluna de Botões
             const tdBtns = document.createElement("td");
 
-            // Editar
+            // Editar (PATCH)
             const btnEdit = document.createElement("button");
             btnEdit.textContent = "Editar";
-            btnEdit.classList.add("btn", "btn-sm", "btn-warning", "rule-action-btn");
-            btnEdit.addEventListener("click", async (e) => {
-                e.preventDefault();
+            btnEdit.classList.add("btn", "btn-sm", "btn-warning", "mr-1"); // Adicionei mr-1 para espaçamento
+            btnEdit.onclick = async () => {
                 const newName = prompt("Editar nome da regra:", rule.name);
                 if (newName && newName !== rule.name) {
                     await updateRuleName(rule.id, newName);
                     renderRulesTable();
-                    alert("Regra atualizada com sucesso.");
                 }
-            });
+            };
             tdBtns.appendChild(btnEdit);
 
-            // Ativar/Desativar
+            // Alternar Status (PUT/PATCH)
             const btnToggle = document.createElement("button");
-            btnToggle.textContent = active ? "Desativar" : "Ativar";
-            btnToggle.classList.add("btn", "btn-sm", active ? "btn-danger" : "btn-success", "rule-action-btn");
-            btnToggle.addEventListener("click", async (e) => {
-                e.preventDefault();
-                await updateRuleStatus(rule.id, active ? "Inativa" : "Ativa");
+            btnToggle.textContent = isActive ? "Desativar" : "Ativar";
+            btnToggle.classList.add("btn", "btn-sm", isActive ? "btn-danger" : "btn-success", "mr-1");
+            btnToggle.onclick = async () => {
+                await updateRuleStatus(rule.id, isActive ? "Inativa" : "Ativa");
                 renderRulesTable();
-            });
+            };
             tdBtns.appendChild(btnToggle);
 
-            // Remover
+            // Remover (DELETE)
             const btnRemove = document.createElement("button");
             btnRemove.textContent = "Remover";
-            btnRemove.classList.add("btn", "btn-sm", "btn-outline-danger", "rule-action-btn");
-            btnRemove.addEventListener("click", async (e) => {
-                e.preventDefault();
-                if (confirm(`Remover regra "${rule.name}"? Esta ação não pode ser desfeita.`)) {
+            btnRemove.classList.add("btn", "btn-sm", "btn-outline-danger");
+            btnRemove.onclick = async () => {
+                if (confirm(`Remover regra "${rule.name}"?`)) {
                     await deleteRule(rule.id);
                     renderRulesTable();
-                    alert(`Regra "${rule.name}" removida.`);
                 }
-            });
+            };
             tdBtns.appendChild(btnRemove);
 
             tr.appendChild(tdBtns);
             tableBody.appendChild(tr);
         });
+    } catch (error) {
+        console.error("Erro ao renderizar tabela:", error);
+        tableBody.innerHTML = "<tr><td colspan='6' class='text-center text-danger'>Erro ao conectar com o servidor.</td></tr>";
     }
+}
 
     const showFakeSearch = (input) => {
         const query = input.value.trim();
