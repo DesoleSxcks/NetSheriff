@@ -1,16 +1,13 @@
-import { fetchRules, updateRuleStatus, updateRuleName, deleteRule } from './api.js';
+import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, fetchAlertsData, fetchTrafficData } from './api.js';
 
 // --- DASHBOARD DINÂMICO ---
         async function initDashboard() {
             try {
                 // Busca dados
-                const [alertsRes, rulesRes] = await Promise.all([
-                    fetch("http://localhost:3000/alerts"),
-                    fetch("http://localhost:3000/rules")
+                const [alerts, rules] = await Promise.all([
+                    fetchAlertsData(),
+                    fetchRules()
                 ]);
-                if (!alertsRes.ok || !rulesRes.ok) throw new Error("Erro ao buscar dados do dashboard");
-                const alerts = await alertsRes.json();
-                const rules = await rulesRes.json();
 
                 // Atualiza Card Alertas Críticos
                 const critCard = document.querySelector(".text-danger.text-uppercase.mb-1");
@@ -102,9 +99,7 @@ import { fetchRules, updateRuleStatus, updateRuleName, deleteRule } from './api.
         const ctx = document.getElementById("trafficChart");
         if (!ctx) return;
         try {
-            const response = await fetch("http://localhost:3000/traffic");
-            if (!response.ok) throw new Error("Erro ao buscar dados de tráfego");
-            const { labels, data } = await response.json();
+            const { labels, data } = await fetchTrafficData();
             new window.Chart(ctx, {
                 type: 'line',
                 data: {
@@ -139,9 +134,7 @@ import { fetchRules, updateRuleStatus, updateRuleName, deleteRule } from './api.
         if (!listGroup) return;
         listGroup.innerHTML = "";
         try {
-            const response = await fetch("http://localhost:3000/alerts");
-            if (!response.ok) throw new Error("Erro ao buscar logs recentes");
-            const logs = await response.json();
+            const logs = await fetchAlertsData();
             logs.slice(0, 6).forEach(log => {
                 const a = document.createElement('a');
                 a.href = "#";
@@ -214,23 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
 
-    // Funções CRUD assíncronas para regras usando Fetch
-    const RULES_API_URL = "http://localhost:3000/rules";
 
-    async function createRule(rule) {
-        try {
-            const response = await fetch(RULES_API_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(rule)
-            });
-            if (!response.ok) throw new Error("Erro ao criar regra");
-            return await response.json();
-        } catch (error) {
-            alert("Falha ao criar regra: " + error.message);
-            return null;
-        }
-    }
 
 
 async function renderRulesTable() {
@@ -344,9 +321,7 @@ async function renderRulesTable() {
     // Função assíncrona para buscar alertas da API
     async function fetchAlerts() {
         try {
-            const response = await fetch("http://localhost:3000/alerts");
-            if (!response.ok) throw new Error("Erro ao buscar alertas");
-            const data = await response.json();
+            const data = await fetchAlertsData();
             currentAlerts = Array.isArray(data) ? data : [];
         } catch (error) {
             alert("Falha ao carregar alertas: " + error.message);
