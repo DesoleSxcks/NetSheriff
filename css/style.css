@@ -160,19 +160,19 @@ footer.sticky-footer {
 }
 
 /* =====================
-   BADGES (ALERTAS)
+   BADGES (ALERTAS) - Atualizado para Bootstrap 5
 ===================== */
-.badge-danger {
-    background-color: var(--danger);
+.bg-danger {
+    background-color: var(--danger) !important;
 }
 
-.badge-warning {
-    background-color: var(--warning);
-    color: #111;
+.bg-warning {
+    background-color: var(--warning) !important;
+    color: #111 !important;
 }
 
-.badge-success {
-    background-color: var(--success);
+.bg-success {
+    background-color: var(--success) !important;
 }
 
 /* =====================
