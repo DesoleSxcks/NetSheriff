@@ -96,38 +96,40 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
         }
     // --- INTEGRAÇÃO MONITORAMENTO ---
     async function renderTrafficChart() {
-        const ctx = document.getElementById("trafficChart");
-        if (!ctx) return;
-        try {
-            const { labels, data } = await fetchTrafficData();
-            new window.Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Tráfego',
-                        data: data,
-                        borderColor: '#4e73df',
-                        backgroundColor: 'rgba(78,115,223,0.05)',
-                        fill: true,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        x: { display: true },
-                        y: { display: true }
-                    }
+    const ctx = document.getElementById("trafficChart");
+    if (!ctx) return;
+    try {
+        const rawData = await fetchTrafficData();
+        
+        const chartLabels = rawData.map(row => row.label_time);
+        const chartData = rawData.map(row => row.traffic_data);
+
+        new window.Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartLabels, 
+                datasets: [{
+                    label: 'Tráfego',
+                    data: chartData, 
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78,115,223,0.05)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { display: true },
+                    y: { display: true }
                 }
-            });
-        } catch (error) {
-            alert("Falha ao renderizar gráfico de tráfego: " + error.message);
-        }
+            }
+        });
+    } catch (error) {
+        alert("Falha ao renderizar gráfico de tráfego: " + error.message);
     }
+}
 
     async function renderRecentLogsSidebar() {
         const listGroup = document.querySelector('.list-group.list-group-flush');
@@ -239,7 +241,7 @@ async function renderRulesTable() {
 
             // Condição
             const tdCond = document.createElement("td");
-            tdCond.textContent = rule.condition;
+            tdCond.textContent = rule.condition_text;
             tr.appendChild(tdCond);
 
             // Ação
@@ -487,7 +489,7 @@ async function renderRulesTable() {
 
         const newRule = {
             name,
-            condition,
+            condition_text,
             action,
             status: "Ativa"
         };
