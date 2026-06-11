@@ -1,4 +1,4 @@
-import pool from './db.js';
+import pool from '../db.js';
 
 async function up() {
   try {
@@ -30,6 +30,7 @@ async function up() {
       ('12h', 2500),
       ('16h', 1000),
       ('20h', 600)`);
+      
   } catch (err) {
     console.error('Seeding error:', err);
     throw err;

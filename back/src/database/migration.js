@@ -1,11 +1,11 @@
-import pool from './db.js';
+import pool from '../db.js';
 
 async function up() {
   try {
     // rules
     await pool.query(`
       CREATE TABLE IF NOT EXISTS rules (
-        id INT PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(100) NOT NULL,
         condition_text VARCHAR(255) NOT NULL,
         action VARCHAR(50) NOT NULL,
@@ -16,7 +16,7 @@ async function up() {
     // alerts
     await pool.query(`
       CREATE TABLE IF NOT EXISTS alerts (
-        id INT PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         timestamp DATETIME NOT NULL,
         type VARCHAR(100) NOT NULL,
         description TEXT NOT NULL,
@@ -28,7 +28,7 @@ async function up() {
     // logs
     await pool.query(`
       CREATE TABLE IF NOT EXISTS logs (
-        id INT PRIMARY KEY,
+        id INT AUTO_INCREMENT PRIMARY KEY,
         timestamp TIME NOT NULL,
         origin VARCHAR(45) NOT NULL,
         type VARCHAR(100) NOT NULL,
@@ -45,6 +45,7 @@ async function up() {
         traffic_data INT NOT NULL
       )
     `);
+
   } catch (err) {
     console.error('Migration error:', err);
     throw err;
