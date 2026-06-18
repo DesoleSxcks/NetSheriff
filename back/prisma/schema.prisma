@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Rule {
+  id        Int    @id @default(autoincrement())
+  name      String
+  condition String
+  action    String
+  status    String
+}
+
+model Alert {
+  id          Int    @id @default(autoincrement())
+  timestamp   String
+  type        String
+  description String
+  severity    String
+  status      String
+}
+
+model Log {
+  id         Int    @id @default(autoincrement())
+  timestamp  String
+  origin     String
+  type       String
+  severity   String
+  actionType String
+}
+
+model Traffic {
+  id     Int    @id @default(autoincrement())
+  labels String
+  data   String
+}

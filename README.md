@@ -20,19 +20,34 @@ Este projeto foi desenvolvido como requisito avaliativo da disciplina de Program
 * **HTML5 & CSS3:** Estruturação semântica e estilização do layout.
 * **JavaScript (ES6+):** Lógica da aplicação, manipulação do DOM e consumo de API.
 * **Bootstrap 4 & SB Admin 2:** Framework CSS e template de dashboard para garantir responsividade e uma excelente UX/UI.
-* **JSON Server:** Ferramenta utilizada para simular uma API RESTful (Back-end fake) e persistir os dados localmente no formato JSON.
+* **JSON Server:** (removido) o projeto agora usa uma API Express com Prisma + SQLite.
 
 ---
 
 ## Como Executar o Projeto Localmente
 
-Como a aplicação consome dados de uma API, é necessário iniciar o servidor local (`json-server`) antes de abrir as páginas HTML. Siga os passos abaixo:
+O backend agora é uma API Node.js/Express que utiliza Prisma ORM 6 e SQLite. Execute o backend antes de abrir as páginas front-end.
 
 ### Pré-requisitos
 * Ter o [Node.js](https://nodejs.org/) instalado na máquina.
-* Recomendado: Extensão *Live Server* no VS Code.
+* Recomendado: Extensão Live Server no VS Code para servir os arquivos em `front/`.
 
-### Passo a passo
-1. Clone este repositório para a sua máquina:
+### Passo a passo (backend)
+1. Entre na pasta do backend e instale as dependências:
    ```bash
-   git clone [https://github.com/SeuUsuario/NetSheriff.git](https://github.com/SeuUsuario/NetSheriff.git)
+   cd back
+   npm install
+   ```
+2. Gere o client Prisma, aplique a migração inicial e rode o seed:
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev --name init
+   npx prisma db seed
+   ```
+3. Inicie o servidor de desenvolvimento (Express):
+   ```bash
+   npm run dev
+   ```
+
+### Frontend
+Abra os arquivos HTML em `front/` (ou use Live Server). O frontend consome a API em `http://localhost:3000/api`.

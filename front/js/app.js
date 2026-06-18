@@ -98,19 +98,20 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
     async function renderTrafficChart() {
     const ctx = document.getElementById("trafficChart");
     if (!ctx) return;
+
     try {
         const rawData = await fetchTrafficData();
-        
-        const chartLabels = rawData.map(row => row.label_time);
-        const chartData = rawData.map(row => row.traffic_data);
+
+        const chartLabels = rawData.labels;
+        const chartData = rawData.data;
 
         new window.Chart(ctx, {
             type: 'line',
             data: {
-                labels: chartLabels, 
+                labels: chartLabels,
                 datasets: [{
                     label: 'Tráfego',
-                    data: chartData, 
+                    data: chartData,
                     borderColor: '#4e73df',
                     backgroundColor: 'rgba(78,115,223,0.05)',
                     fill: true,
@@ -130,7 +131,6 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
         alert("Falha ao renderizar gráfico de tráfego: " + error.message);
     }
 }
-
     async function renderRecentLogsSidebar() {
         const listGroup = document.querySelector('.list-group.list-group-flush');
         if (!listGroup) return;
@@ -241,7 +241,7 @@ async function renderRulesTable() {
 
             // Condição
             const tdCond = document.createElement("td");
-            tdCond.textContent = rule.condition_text;
+            tdCond.textContent = rule.condition;
             tr.appendChild(tdCond);
 
             // Ação
@@ -421,7 +421,7 @@ async function renderRulesTable() {
             btn.textContent = "Detalhes";
             btn.classList.add("btn", "btn-sm", "btn-info", "alert-details-btn");
             btn.addEventListener("click", () => {
-                alert(
+                window.alert(
                     `Detalhes do Alerta ${alert.id}:\n\n` +
                     `Tipo: ${alert.type}\nDescrição: ${alert.description}\nSeveridade: ${alert.severity}\nStatus: ${alert.status}\nTimestamp: ${alert.timestamp}`
                 );
@@ -489,7 +489,7 @@ async function renderRulesTable() {
 
         const newRule = {
             name,
-            condition_text,
+            condition,
             action,
             status: "Ativa"
         };

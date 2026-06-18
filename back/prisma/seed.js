@@ -1,0 +1,66 @@
+import { PrismaClient } from '@prisma/client';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const prisma = new PrismaClient();
+
+async function main() {
+  const dbFile = path.join(__dirname, '../../front/db.json');
+  const raw = await fs.readFile(dbFile, 'utf-8');
+  const { rules, alerts, logs, traffic } = JSON.parse(raw);
+
+  await prisma.rule.deleteMany();
+  await prisma.alert.deleteMany();
+  await prisma.log.deleteMany();
+  await prisma.traffic.deleteMany();
+
+  await prisma.rule.createMany({
+    data: rules.map((rule) => ({
+      id: Number(rule.id),
+      name: rule.name,
+      condition: rule.condition,
+      action: rule.action,
+      status: rule.status
+    }))
+  });
+
+  await prisma.alert.createMany({
+    data: alerts.map((alert) => ({
+      id: Number(alert.id),
+      timestamp: alert.timestamp,
+      type: alert.type,
+      description: alert.description,
+      severity: alert.severity,
+      status: alert.status
+    }))
+  });
+
+  await prisma.log.createMany({
+    data: logs.map((log) => ({
+      id: Number(log.id),
+      timestamp: log.timestamp,
+      origin: log.origin,
+      type: log.type,
+      severity: log.severity,
+      actionType: log.actionType
+    }))
+  });
+
+  await prisma.traffic.create({
+    data: {
+      labels: JSON.stringify(traffic.labels),
+      data: JSON.stringify(traffic.data)
+    }
+  });
+}
+
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

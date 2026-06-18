@@ -1,0 +1,72 @@
+{
+  "rules": [
+    {
+      "id": "1",
+      "name": "Block High Traffic",
+      "condition": "traffic > 1000 packets/min",
+      "action": "Alert",
+      "status": "Ativa"
+    },
+    {
+      "id": "2",
+      "name": "Detect Port Scans",
+      "condition": "ports scanned > 10",
+      "action": "Block",
+      "status": "Ativa"
+    },
+    {
+      "id": "3",
+      "name": "Monitor Anomalies",
+      "condition": "unusual patterns detected",
+      "action": "Log",
+      "status": "Inativa"
+    },
+    {
+      "id": "4",
+      "name": "SQL Injection Detection",
+      "condition": "SQL patterns in HTTP requests",
+      "action": "Block",
+      "status": "Ativa"
+    }
+  ],
+  "alerts": [
+    {
+      "id": "1",
+      "timestamp": "2026-03-15 10:00:00",
+      "type": "Suspicious Traffic",
+      "description": "High volume from unknown IP 192.168.1.100",
+      "severity": "High",
+      "status": "Ativo"
+    },
+    {
+      "id": "2",
+      "timestamp": "2026-03-15 10:05:00",
+      "type": "Port Scan",
+      "description": "Multiple port attempts from IP 10.0.0.5",
+      "severity": "Medium",
+      "status": "Resolvido"
+    }
+  ],
+  "logs": [
+    {
+      "id": "1",
+      "timestamp": "10:00",
+      "origin": "192.168.1.5",
+      "type": "SQL Injection",
+      "severity": "Crítico",
+      "actionType": "block"
+    },
+    {
+      "id": "2",
+      "timestamp": "10:05",
+      "origin": "10.0.0.12",
+      "type": "Port Scan",
+      "severity": "Médio",
+      "actionType": "investigate"
+    }
+  ],
+  "traffic": {
+    "labels": ["00h", "04h", "08h", "12h", "16h", "20h"],
+    "data": [500, 1200, 800, 2500, 1000, 600]
+  }
+}
