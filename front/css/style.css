@@ -117,7 +117,7 @@ body,
    FORMULÁRIOS
 ===================== */
 .form-control {
-    background-color: var(--bg-main);
+    background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     color: var(--text-main);
 }
@@ -125,7 +125,18 @@ body,
 .form-control:focus {
     border-color: var(--primary);
     color: var(--text-white);
+    background-color: var(--bg-secondary);
     box-shadow: none;
+}
+
+/* Select styling */
+select.form-control {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e4e6eb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
 }
 
 /* =====================
@@ -250,9 +261,13 @@ footer.sticky-footer {
 }
 
 .light-mode .form-control {
-    background-color: var(--bg-main);
+    background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     color: var(--text-main);
+}
+
+.light-mode select.form-control {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23212529' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
 }
 
 .light-mode .dropdown-menu {
@@ -281,12 +296,30 @@ footer.sticky-footer {
 
 /* Theme toggle button */
 #themeToggle {
-    border: none !important;
+    background-color: transparent !important;
+    border: 1px solid var(--border-color) !important;
     box-shadow: none !important;
+    color: var(--text-main) !important;
+}
+
+#themeToggle:hover {
+    background-color: var(--bg-hover) !important;
+    border-color: var(--primary) !important;
 }
 
 #themeToggle:focus {
     box-shadow: none !important;
+    background-color: transparent !important;
+}
+
+.light-mode #themeToggle {
+    border-color: #dee2e6 !important;
+    color: #6c757d !important;
+}
+
+.light-mode #themeToggle:hover {
+    background-color: #f0f0f0 !important;
+    border-color: #007bff !important;
 }
 
 .light-mode footer.sticky-footer {
