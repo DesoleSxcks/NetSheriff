@@ -51,3 +51,16 @@ O backend agora é uma API Node.js/Express que utiliza Prisma ORM 6 e SQLite. Ex
 
 ### Frontend
 Abra os arquivos HTML em `front/` (ou use Live Server). O frontend consome a API em `http://localhost:3000/api`.
+
+### Docker (opcional)
+Há suporte básico para execução com Docker Compose. No repositório há `docker-compose.yml` que cria os serviços `back` e `front` e um volume persistente para o arquivo SQLite.
+
+Exemplo para subir os serviços:
+```bash
+docker-compose up --build
+```
+
+O backend ficará disponível em `http://localhost:3000` e o front em `http://localhost:8080`.
+
+### Variáveis de ambiente
+O backend utiliza variáveis definidas em `.env`. Para referência há um arquivo de exemplo em `back/.env.example` com as variáveis necessárias (DATABASE_URL, PORT, LOG_LEVEL, JWT_SECRET).

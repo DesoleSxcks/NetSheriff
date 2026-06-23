@@ -1,77 +1,87 @@
-import express from 'express';
-import prisma from '../lib/prisma.js';
+import express from 'express'
+import prisma from '../lib/prisma.js'
 
-const router = express.Router();
+const router = express.Router()
 
-function formatTraffic(traffic) {
+function parseTraffic(traffic) {
+  if (!traffic) {
+    return {
+      labels: [],
+      data: []
+    }
+  }
+
   return {
     id: traffic.id,
     labels: JSON.parse(traffic.labels),
     data: JSON.parse(traffic.data)
-  };
+  }
 }
 
 router.get('/', async (req, res) => {
-  const traffic = await prisma.traffic.findFirst();
-  if (!traffic) {
-    return res.json({ labels: [], data: [] });
-  }
-  res.json(formatTraffic(traffic));
-});
+  try {
+    const traffic = await prisma.traffic.findFirst({
+      orderBy: { id: 'asc' }
+    })
 
-router.put('/', async (req, res) => {
-  const { labels, data } = req.body;
-  if (!Array.isArray(labels) || !Array.isArray(data)) {
-    return res.status(400).json({ error: 'Os campos labels e data devem ser arrays' });
+    res.json(parseTraffic(traffic))
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erro ao buscar tráfego' })
   }
+})
 
-  const existing = await prisma.traffic.findFirst();
-  if (existing) {
-    const updated = await prisma.traffic.update({
-      where: { id: existing.id },
+router.post('/', async (req, res) => {
+  try {
+    const { labels, data } = req.body
+
+    const traffic = await prisma.traffic.create({
       data: {
         labels: JSON.stringify(labels),
         data: JSON.stringify(data)
       }
-    });
-    return res.json(formatTraffic(updated));
+    })
+
+    res.status(201).json(parseTraffic(traffic))
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erro ao criar tráfego' })
   }
+})
 
-  const created = await prisma.traffic.create({
-    data: {
-      labels: JSON.stringify(labels),
-      data: JSON.stringify(data)
-    }
-  });
+router.put('/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id)
+    const { labels, data } = req.body
 
-  res.status(201).json(formatTraffic(created));
-});
+    const traffic = await prisma.traffic.update({
+      where: { id },
+      data: {
+        labels: JSON.stringify(labels),
+        data: JSON.stringify(data)
+      }
+    })
 
-router.patch('/', async (req, res) => {
-  const { labels, data } = req.body;
-  if (labels === undefined && data === undefined) {
-    return res.status(400).json({ error: 'É necessário informar labels ou data' });
+    res.json(parseTraffic(traffic))
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erro ao atualizar tráfego' })
   }
+})
 
-  const existing = await prisma.traffic.findFirst();
-  const payload = {};
-  if (labels !== undefined) payload.labels = JSON.stringify(labels);
-  if (data !== undefined) payload.data = JSON.stringify(data);
+router.delete('/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id)
 
-  if (existing) {
-    const updated = await prisma.traffic.update({
-      where: { id: existing.id },
-      data: payload
-    });
-    return res.json(formatTraffic(updated));
+    await prisma.traffic.delete({
+      where: { id }
+    })
+
+    res.status(204).send()
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Erro ao remover tráfego' })
   }
+})
 
-  if (payload.labels === undefined || payload.data === undefined) {
-    return res.status(400).json({ error: 'É necessário informar labels e data para criar o registro de tráfego' });
-  }
-
-  const created = await prisma.traffic.create({ data: payload });
-  res.status(201).json(formatTraffic(created));
-});
-
-export default router;
+export default router

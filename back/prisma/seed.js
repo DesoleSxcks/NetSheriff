@@ -1,10 +1,17 @@
-import { PrismaClient } from '@prisma/client';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { PrismaClient } from '@prisma/client'
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import 'dotenv/config'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const prisma = new PrismaClient();
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const adapter = new PrismaBetterSqlite3({
+  url: process.env.DATABASE_URL || 'file:./data/database.sqlite'
+})
+
+const prisma = new PrismaClient({ adapter })
 
 async function main() {
   const dbFile = path.join(__dirname, '../../front/db.json');

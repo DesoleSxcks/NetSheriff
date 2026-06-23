@@ -1,0 +1,30 @@
+services:
+  back:
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    container_name: netsheriff-back
+    env_file:
+      - ./back/.env
+    environment:
+      - PORT=3000
+      - DATABASE_URL=file:/data/database.sqlite
+    volumes:
+      - db_data:/data
+      - ./front:/front:ro
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: netsheriff-front
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+volumes:
+  db_data:
+    name: netsheriff_db_data
