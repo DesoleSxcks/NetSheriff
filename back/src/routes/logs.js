@@ -1,97 +1,78 @@
 import express from 'express'
 import prisma from '../lib/prisma.js'
+import logger from '../lib/logger.js'
+import { asyncHandler, AppError } from '../lib/errorHandler.js'
 
 const router = express.Router()
 
-router.get('/', async (req, res) => {
-  try {
-    const logs = await prisma.log.findMany({
-      orderBy: { id: 'asc' }
-    })
+router.get('/', asyncHandler(async (req, res) => {
+  const logs = await prisma.log.findMany({
+    orderBy: { id: 'asc' }
+  })
 
-    res.json(logs)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao buscar logs' })
+  res.json(logs)
+}))
+
+router.get('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+
+  const log = await prisma.log.findUnique({
+    where: { id }
+  })
+
+  if (!log) {
+    throw new AppError('Log não encontrado', 404)
   }
-})
 
-router.get('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id)
+  res.json(log)
+}))
 
-    const log = await prisma.log.findUnique({
-      where: { id }
-    })
+router.post('/', asyncHandler(async (req, res) => {
+  const { timestamp, origin, type, severity, actionType } = req.body
 
-    if (!log) {
-      return res.status(404).json({ error: 'Log não encontrado' })
+  if (!timestamp || !origin || !type || !severity) {
+    throw new AppError('Campo obrigatório faltando', 400)
+  }
+
+  const log = await prisma.log.create({
+    data: {
+      timestamp,
+      origin,
+      type,
+      severity,
+      actionType
     }
+  })
 
-    res.json(log)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao buscar log' })
-  }
-})
+  res.status(201).json(log)
+}))
 
-router.post('/', async (req, res) => {
-  try {
-    const { timestamp, origin, type, severity, actionType } = req.body
+router.put('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+  const { timestamp, origin, type, severity, actionType } = req.body
 
-    const log = await prisma.log.create({
-      data: {
-        timestamp,
-        origin,
-        type,
-        severity,
-        actionType
-      }
-    })
+  const log = await prisma.log.update({
+    where: { id },
+    data: {
+      timestamp,
+      origin,
+      type,
+      severity,
+      actionType
+    }
+  })
 
-    res.status(201).json(log)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao criar log' })
-  }
-})
+  res.json(log)
+}))
 
-router.put('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id)
-    const { timestamp, origin, type, severity, actionType } = req.body
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
 
-    const log = await prisma.log.update({
-      where: { id },
-      data: {
-        timestamp,
-        origin,
-        type,
-        severity,
-        actionType
-      }
-    })
+  await prisma.log.delete({
+    where: { id }
+  })
 
-    res.json(log)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao atualizar log' })
-  }
-})
-
-router.delete('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id)
-
-    await prisma.log.delete({
-      where: { id }
-    })
-
-    res.status(204).send()
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao remover log' })
-  }
-})
+  res.status(204).send()
+}))
 
 export default router

@@ -1,97 +1,78 @@
 import express from 'express'
 import prisma from '../lib/prisma.js'
+import logger from '../lib/logger.js'
+import { asyncHandler, AppError } from '../lib/errorHandler.js'
 
 const router = express.Router()
 
-router.get('/', async (req, res) => {
-  try {
-    const alerts = await prisma.alert.findMany({
-      orderBy: { id: 'asc' }
-    })
+router.get('/', asyncHandler(async (req, res) => {
+  const alerts = await prisma.alert.findMany({
+    orderBy: { id: 'asc' }
+  })
 
-    res.json(alerts)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao buscar alertas' })
+  res.json(alerts)
+}))
+
+router.get('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+
+  const alert = await prisma.alert.findUnique({
+    where: { id }
+  })
+
+  if (!alert) {
+    throw new AppError('Alerta não encontrado', 404)
   }
-})
 
-router.get('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id)
+  res.json(alert)
+}))
 
-    const alert = await prisma.alert.findUnique({
-      where: { id }
-    })
+router.post('/', asyncHandler(async (req, res) => {
+  const { timestamp, type, description, severity, status } = req.body
 
-    if (!alert) {
-      return res.status(404).json({ error: 'Alerta não encontrado' })
+  if (!timestamp || !type || !description || !severity) {
+    throw new AppError('Campo obrigatório faltando', 400)
+  }
+
+  const alert = await prisma.alert.create({
+    data: {
+      timestamp,
+      type,
+      description,
+      severity,
+      status
     }
+  })
 
-    res.json(alert)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao buscar alerta' })
-  }
-})
+  res.status(201).json(alert)
+}))
 
-router.post('/', async (req, res) => {
-  try {
-    const { timestamp, type, description, severity, status } = req.body
+router.put('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+  const { timestamp, type, description, severity, status } = req.body
 
-    const alert = await prisma.alert.create({
-      data: {
-        timestamp,
-        type,
-        description,
-        severity,
-        status
-      }
-    })
+  const alert = await prisma.alert.update({
+    where: { id },
+    data: {
+      timestamp,
+      type,
+      description,
+      severity,
+      status
+    }
+  })
 
-    res.status(201).json(alert)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao criar alerta' })
-  }
-})
+  res.json(alert)
+}))
 
-router.put('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id)
-    const { timestamp, type, description, severity, status } = req.body
+router.delete('/:id', asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
 
-    const alert = await prisma.alert.update({
-      where: { id },
-      data: {
-        timestamp,
-        type,
-        description,
-        severity,
-        status
-      }
-    })
+  await prisma.alert.delete({
+    where: { id }
+  })
 
-    res.json(alert)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao atualizar alerta' })
-  }
-})
-
-router.delete('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id)
-
-    await prisma.alert.delete({
-      where: { id }
-    })
-
-    res.status(204).send()
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao remover alerta' })
-  }
-})
+  res.status(204).send()
+}))
 
 export default router

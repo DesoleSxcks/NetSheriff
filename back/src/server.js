@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import logger from './lib/logger.js';
 import { authMiddleware } from './lib/authMiddleware.js';
+import { errorHandler, notFoundHandler } from './lib/errorHandler.js';
 
 import authRouter from './routes/auth.js';
 import rulesRouter from './routes/rules.js';
@@ -42,9 +43,11 @@ app.use('/api/alerts', authMiddleware, alertsRouter);
 app.use('/api/logs', authMiddleware, logsRouter);
 app.use('/api/traffic', authMiddleware, trafficRouter);
 
-app.use((req, res) => {
-  res.status(404).json({ error: 'Endpoint não encontrado' });
-});
+// 404 handler deve vir antes do error handler
+app.use(notFoundHandler);
+
+// Middleware centralizado de tratamento de erros (DEVE SER POR ÚLTIMO)
+app.use(errorHandler);
 
 const port = Number(process.env.PORT ?? 3000);
 
