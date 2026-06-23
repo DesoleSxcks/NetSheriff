@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import logger from './lib/logger.js';
+import { authMiddleware } from './lib/authMiddleware.js';
 
+import authRouter from './routes/auth.js';
 import rulesRouter from './routes/rules.js';
 import alertsRouter from './routes/alerts.js';
 import logsRouter from './routes/logs.js';
@@ -31,10 +33,14 @@ app.get('/health', (req, res) => {
   res.json(health);
 });
 
-app.use('/api/rules', rulesRouter);
-app.use('/api/alerts', alertsRouter);
-app.use('/api/logs', logsRouter);
-app.use('/api/traffic', trafficRouter);
+// Authentication routes (public)
+app.use('/api/auth', authRouter);
+
+// Protected routes
+app.use('/api/rules', authMiddleware, rulesRouter);
+app.use('/api/alerts', authMiddleware, alertsRouter);
+app.use('/api/logs', authMiddleware, logsRouter);
+app.use('/api/traffic', authMiddleware, trafficRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado' });
