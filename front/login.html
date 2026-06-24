@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetSheriff - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-logo h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .login-logo p {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .login-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .form-group.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .login-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        .login-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .login-button:active {
+            transform: translateY(0);
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .toggle-form a {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .toggle-form a:hover {
+            color: #764ba2;
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .success {
+            background-color: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #3c3;
+            display: none;
+        }
+
+        .success.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #ddd;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 5px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="login-logo">
+                <h1>🔒 NetSheriff</h1>
+                <p>Sistema de Monitoramento de Segurança</p>
+            </div>
+
+            <div class="error" id="errorMessage"></div>
+            <div class="success" id="successMessage"></div>
+
+            <form class="login-form" id="loginForm">
+                <!-- Login Tab -->
+                <div id="loginTab">
+                    <h2 style="color: #333; font-size: 20px; margin-bottom: 20px; text-align: center;">Login</h2>
+                    <div class="form-group active">
+                        <label for="loginEmail">Email</label>
+                        <input type="email" id="loginEmail" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group active">
+                        <label for="loginPassword">Senha</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="button" class="login-button" id="loginBtn">Entrar</button>
+                </div>
+
+                <!-- Register Tab -->
+                <div id="registerTab" style="display: none;">
+                    <h2 style="color: #333; font-size: 20px; margin-bottom: 20px; text-align: center;">Registrar</h2>
+                    <div class="form-group active">
+                        <label for="registerName">Nome</label>
+                        <input type="text" id="registerName" placeholder="Seu Nome" required>
+                    </div>
+                    <div class="form-group active">
+                        <label for="registerEmail">Email</label>
+                        <input type="email" id="registerEmail" placeholder="seu@email.com" required>
+                    </div>
+                    <div class="form-group active">
+                        <label for="registerPassword">Senha</label>
+                        <input type="password" id="registerPassword" placeholder="••••••••" minlength="6" required>
+                    </div>
+                    <div class="form-group active">
+                        <label for="registerPassword2">Confirmar Senha</label>
+                        <input type="password" id="registerPassword2" placeholder="••••••••" minlength="6" required>
+                    </div>
+                    <button type="button" class="login-button" id="registerBtn">Criar Conta</button>
+                </div>
+
+                <div class="loading" id="loading">
+                    <span class="spinner"></span>Processando...
+                </div>
+            </form>
+
+            <div class="toggle-form">
+                <span id="toggleText">Não tem conta? <a id="toggleLink">Registre-se</a></span>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { login, register } from './js/api.js';
+
+        const loginTab = document.getElementById('loginTab');
+        const registerTab = document.getElementById('registerTab');
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const toggleLink = document.getElementById('toggleLink');
+        const toggleText = document.getElementById('toggleText');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const loading = document.getElementById('loading');
+
+        let isLoginMode = true;
+
+        // Toggle between login and register
+        toggleLink.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            if (isLoginMode) {
+                loginTab.style.display = 'block';
+                registerTab.style.display = 'none';
+                toggleText.innerHTML = 'Não tem conta? <a id="toggleLink">Registre-se</a>';
+                toggleLink.addEventListener('click', arguments.callee);
+            } else {
+                loginTab.style.display = 'none';
+                registerTab.style.display = 'block';
+                toggleText.innerHTML = 'Já tem conta? <a id="toggleLink">Entre aqui</a>';
+                toggleLink.addEventListener('click', arguments.callee);
+            }
+        });
+
+        // Clear messages
+        function clearMessages() {
+            errorMessage.textContent = '';
+            errorMessage.classList.remove('show');
+            successMessage.textContent = '';
+            successMessage.classList.remove('show');
+        }
+
+        function showError(message) {
+            clearMessages();
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        function showSuccess(message) {
+            clearMessages();
+            successMessage.textContent = message;
+            successMessage.classList.add('show');
+        }
+
+        function setLoading(isLoading) {
+            loading.classList.toggle('show', isLoading);
+            loginBtn.disabled = isLoading;
+            registerBtn.disabled = isLoading;
+        }
+
+        // Login
+        loginBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showError('Email e senha são obrigatórios');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                await login(email, password);
+                showSuccess('Login realizado! Redirecionando...');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Register
+        registerBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('registerName').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const password2 = document.getElementById('registerPassword2').value;
+
+            if (!name || !email || !password) {
+                showError('Todos os campos são obrigatórios');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('A senha deve ter no mínimo 6 caracteres');
+                return;
+            }
+
+            if (password !== password2) {
+                showError('As senhas não conferem');
+                return;
+            }
+
+            setLoading(true);
+            try {
+                await register(email, password, name);
+                showSuccess('Conta criada com sucesso! Redirecionando...');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Check if already logged in
+        import { isAuthenticated } from './js/api.js';
+        if (isAuthenticated()) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
