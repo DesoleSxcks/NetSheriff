@@ -262,65 +262,19 @@
         </div>
     </div>
 
-    <script>
-        const BASE_URL = 'http://localhost:3000/api';
-
-        function getAuthHeaders() {
-            const token = localStorage.getItem('authToken');
-            return token ? { Authorization: `Bearer ${token}` } : {};
-        }
-
-        async function requestJson(path, options = {}) {
-            const headers = {
-                'Content-Type': 'application/json',
-                ...getAuthHeaders(),
-                ...(options.headers || {})
-            };
-
-            const response = await fetch(`${BASE_URL}${path}`, {
-                ...options,
-                headers
-            });
-
-            const text = await response.text();
-            const data = text ? JSON.parse(text) : null;
-
-            if (!response.ok) {
-                const message = data?.error || data?.message || response.statusText || 'Erro na requisição';
-                throw new Error(message);
-            }
-
-            return data;
-        }
+    <script type="module">
+        import { login as loginRequest, register as registerRequest, isAuthenticated as checkAuth } from './js/api.js';
 
         async function login(email, password) {
-            const data = await requestJson('/auth/login', {
-                method: 'POST',
-                body: JSON.stringify({ email, password })
-            });
-
-            if (data?.token) {
-                localStorage.setItem('authToken', data.token);
-            }
-
-            return data;
+            return loginRequest(email, password);
         }
 
         async function register(email, password, name) {
-            const data = await requestJson('/auth/register', {
-                method: 'POST',
-                body: JSON.stringify({ email, password, name })
-            });
-
-            if (data?.token) {
-                localStorage.setItem('authToken', data.token);
-            }
-
-            return data;
+            return registerRequest(email, password, name);
         }
 
         function isAuthenticated() {
-            return Boolean(localStorage.getItem('authToken'));
+            return checkAuth();
         }
 
         const loginTab = document.getElementById('loginTab');

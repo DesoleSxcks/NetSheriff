@@ -294,6 +294,141 @@ footer.sticky-footer {
     border: 1px solid var(--border-color);
 }
 
+/* Notifications */
+.app-notifications {
+    position: fixed;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+    width: min(320px, calc(100vw - 1.5rem));
+}
+
+.app-notification {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.6rem;
+    background: rgba(26, 29, 35, 0.96);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+    color: var(--text-main);
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: auto;
+}
+
+.app-notification.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.app-notification.success {
+    border-color: rgba(46, 204, 113, 0.35);
+}
+
+.app-notification.error {
+    border-color: rgba(255, 77, 79, 0.35);
+}
+
+.app-notification.warning {
+    border-color: rgba(240, 173, 78, 0.35);
+}
+
+.app-notification.info {
+    border-color: rgba(79, 140, 255, 0.35);
+}
+
+.app-notification__icon {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 700;
+    font-size: 0.82rem;
+    flex-shrink: 0;
+    margin-top: 0.08rem;
+}
+
+.app-notification__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+}
+
+.app-notification__content strong {
+    font-size: 0.9rem;
+}
+
+.app-notification__content p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.25;
+}
+
+.app-notification__close {
+    background: transparent;
+    border: 0;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+.status-message {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 0.45rem;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+    margin: 0.15rem 0;
+    width: fit-content;
+}
+
+.table-status-cell {
+    text-align: center;
+}
+
+.status-message.loading {
+    color: var(--text-main);
+}
+
+.status-message.error {
+    color: var(--danger);
+}
+
+.status-message__spinner {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.status-message__icon {
+    font-weight: 700;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 /* Theme toggle button */
 #themeToggle {
     background-color: transparent !important;

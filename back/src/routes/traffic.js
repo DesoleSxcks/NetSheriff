@@ -1,7 +1,17 @@
 import express from 'express'
 import prisma from '../lib/prisma.js'
+import { validateBody, validateParams } from '../lib/validation.js'
 
 const router = express.Router()
+
+const trafficIdSchema = {
+  id: { required: true, type: 'integer', min: 1 }
+}
+
+const trafficSchema = {
+  labels: { required: true, type: 'array' },
+  data: { required: true, type: 'array' }
+}
 
 function parseTraffic(traffic) {
   if (!traffic) {
@@ -31,7 +41,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', validateBody(trafficSchema), async (req, res) => {
   try {
     const { labels, data } = req.body
 
@@ -49,7 +59,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateParams(trafficIdSchema), validateBody(trafficSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
     const { labels, data } = req.body
@@ -69,7 +79,7 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateParams(trafficIdSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
 

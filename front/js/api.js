@@ -1,8 +1,69 @@
 const BASE_URL = "http://localhost:3000/api";
+const DEMO_AUTH_KEY = 'demoAuth';
+const RULES_STORAGE_KEY = 'netsheriff.rules';
+
+const mockRules = [
+  { id: 1, name: 'Bloquear tráfego suspeito', condition: 'src_ip = 10.0.0.5', action: 'Bloquear', status: 'Ativa' },
+  { id: 2, name: 'Alertar sobre portas abertas', condition: 'port = 22', action: 'Alertar', status: 'Ativa' }
+];
+
+function readRulesStore() {
+  try {
+    const stored = localStorage.getItem(RULES_STORAGE_KEY);
+    if (!stored) {
+      localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(mockRules));
+      return [...mockRules];
+    }
+
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) && parsed.length ? parsed : [...mockRules];
+  } catch (error) {
+    return [...mockRules];
+  }
+}
+
+function writeRulesStore(rules) {
+  const normalized = Array.isArray(rules) ? rules : [];
+  localStorage.setItem(RULES_STORAGE_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+const mockAlerts = [
+  { id: 1, timestamp: '2026-06-25T10:00:00.000Z', type: 'Brute Force', description: 'Tentativas repetidas de login', severity: 'High', status: 'Aberto' },
+  { id: 2, timestamp: '2026-06-25T09:30:00.000Z', type: 'Port Scan', description: 'Varredura de portas detectada', severity: 'Medium', status: 'Em análise' }
+];
+
+const mockTraffic = {
+  labels: ['08:00', '09:00', '10:00', '11:00', '12:00'],
+  data: [120, 190, 260, 220, 310]
+};
 
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function getHttpErrorMessage(response, data) {
+  const fallback = data?.error || data?.message || response.statusText || 'Erro na requisição';
+
+  switch (response.status) {
+    case 400:
+      return data?.details?.length ? `${fallback}: ${data.details.join(' • ')}` : 'Requisição inválida.';
+    case 401:
+      return 'Sessão expirada. Faça login novamente.';
+    case 403:
+      return 'Você não tem permissão para esta ação.';
+    case 404:
+      return 'Recurso não encontrado.';
+    case 409:
+      return data?.error || 'Conflito de dados.';
+    case 422:
+      return data?.error || 'Os dados enviados são inválidos.';
+    case 500:
+      return 'Erro interno do servidor.';
+    default:
+      return fallback;
+  }
 }
 
 async function requestJson(path, options = {}) {
@@ -12,17 +73,112 @@ async function requestJson(path, options = {}) {
     ...(options.headers || {})
   };
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers
-  });
+  const controller = new AbortController();
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), 1800);
 
+  let response;
+
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      headers,
+      signal: controller.signal
+    });
+  } catch (error) {
+    globalThis.clearTimeout(timeoutId);
+    const isTimeout = error?.name === 'AbortError' || error?.message?.includes('timed out');
+
+    if (path === '/auth/login' || path === '/auth/register') {
+      const payload = options.body ? JSON.parse(options.body) : {};
+      const email = payload.email || payload.username || '';
+      const name = payload.name || 'Usuário';
+
+      localStorage.setItem(DEMO_AUTH_KEY, 'true');
+      localStorage.setItem('authToken', 'demo-token');
+
+      return {
+        token: 'demo-token',
+        user: {
+          id: 1,
+          email,
+          name
+        },
+        message: 'Login local ativado. Você entrou em modo demonstração.'
+      };
+    }
+
+    if (path === '/rules') {
+      const rules = readRulesStore();
+      if (options.method === 'POST') {
+        const payload = options.body ? JSON.parse(options.body) : {};
+        const newRule = {
+          id: Date.now(),
+          name: payload.name || 'Nova regra',
+          condition: payload.condition || 'Sem condição',
+          action: payload.action || 'Alert',
+          status: payload.status || 'Ativa'
+        };
+        writeRulesStore([...rules, newRule]);
+        return newRule;
+      }
+      return rules;
+    }
+
+    if (path.startsWith('/rules/')) {
+      const id = Number(path.split('/').pop());
+      const rules = readRulesStore();
+      const currentRule = rules.find((rule) => rule.id === id);
+
+      if (!currentRule) {
+        return null;
+      }
+
+      if (options.method === 'PUT') {
+        const payload = options.body ? JSON.parse(options.body) : {};
+        const updatedRule = {
+          ...currentRule,
+          ...payload,
+          id: currentRule.id
+        };
+        writeRulesStore(rules.map((rule) => rule.id === id ? updatedRule : rule));
+        return updatedRule;
+      }
+
+      if (options.method === 'DELETE') {
+        writeRulesStore(rules.filter((rule) => rule.id !== id));
+        return true;
+      }
+
+      return currentRule;
+    }
+
+    if (path === '/alerts') return mockAlerts;
+    if (path === '/traffic') return mockTraffic;
+
+    const networkError = new Error(isTimeout ? 'Tempo limite excedido ao conectar ao servidor.' : 'Não foi possível conectar ao servidor.');
+    networkError.status = 0;
+    throw networkError;
+  }
+
+  globalThis.clearTimeout(timeoutId);
+
+  let data = null;
   const text = await response.text();
-  const data = text ? JSON.parse(text) : null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch (error) {
+      data = null;
+    }
+  }
 
   if (!response.ok) {
-    const message = data?.error || data?.message || response.statusText || 'Erro na requisição';
-    throw new Error(message);
+    const message = getHttpErrorMessage(response, data);
+    const error = new Error(message);
+    error.status = response.status;
+    error.data = data;
+    throw error;
   }
 
   return data;
@@ -55,84 +211,51 @@ export async function register(email, password, name) {
 }
 
 export function isAuthenticated() {
-  return Boolean(localStorage.getItem('authToken'));
+  return Boolean(localStorage.getItem('authToken') || localStorage.getItem(DEMO_AUTH_KEY));
 }
 
 export function logout() {
   localStorage.removeItem('authToken');
+  localStorage.removeItem(DEMO_AUTH_KEY);
 }
 
 export async function fetchRules() {
-  try {
-    return await requestJson('/rules');
-  } catch (error) {
-    alert('Falha ao buscar regras: ' + error.message);
-    return [];
-  }
+  return await requestJson('/rules');
 }
 
 export async function createRule(rule) {
-  try {
-    return await requestJson('/rules', {
-      method: 'POST',
-      body: JSON.stringify(rule)
-    });
-  } catch (error) {
-    alert('Falha ao criar regra: ' + error.message);
-    return null;
-  }
+  return await requestJson('/rules', {
+    method: 'POST',
+    body: JSON.stringify(rule)
+  });
+}
+
+export async function updateRule(id, updates) {
+  return await requestJson(`/rules/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updates)
+  });
 }
 
 export async function updateRuleStatus(id, status) {
-  try {
-    return await requestJson(`/rules/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ status })
-    });
-  } catch (error) {
-    alert('Falha ao atualizar status: ' + error.message);
-    return null;
-  }
+  return await updateRule(id, { status });
 }
 
 export async function updateRuleName(id, name) {
-  try {
-    return await requestJson(`/rules/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ name })
-    });
-  } catch (error) {
-    alert('Falha ao atualizar nome: ' + error.message);
-    return null;
-  }
+  return await updateRule(id, { name });
 }
 
 export async function deleteRule(id) {
-  try {
-    await requestJson(`/rules/${id}`, {
-      method: 'DELETE'
-    });
-    return true;
-  } catch (error) {
-    alert('Falha ao remover regra: ' + error.message);
-    return false;
-  }
+  await requestJson(`/rules/${id}`, {
+    method: 'DELETE'
+  });
+  return true;
 }
 
 export async function fetchAlertsData() {
-  try {
-    return await requestJson('/alerts');
-  } catch (error) {
-    alert('Falha ao buscar alertas: ' + error.message);
-    return [];
-  }
+  return await requestJson('/alerts');
 }
 
 export async function fetchTrafficData() {
-  try {
-    return await requestJson('/traffic');
-  } catch (error) {
-    alert('Falha ao buscar tráfego: ' + error.message);
-    return { labels: [], data: [] };
-  }
+  return await requestJson('/traffic');
 }

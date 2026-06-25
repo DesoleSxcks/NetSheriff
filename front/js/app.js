@@ -1,4 +1,163 @@
-import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, fetchAlertsData, fetchTrafficData } from './api.js';
+import { fetchRules, createRule, updateRule, updateRuleStatus, updateRuleName, deleteRule, fetchAlertsData, fetchTrafficData, isAuthenticated, logout } from './api.js';
+
+function ensureNotificationContainer() {
+    let container = document.getElementById('appNotifications');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'appNotifications';
+        container.className = 'app-notifications';
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+function showNotification({ type = 'info', title, message, duration = 2800 }) {
+    const container = ensureNotificationContainer();
+    const toast = document.createElement('div');
+    toast.className = `app-notification ${type}`;
+
+    const iconMap = {
+        success: '✓',
+        error: '!',
+        warning: '⚠',
+        info: 'i'
+    };
+
+    const titleText = title || (type === 'success' ? 'Sucesso' : type === 'error' ? 'Erro' : type === 'warning' ? 'Atenção' : 'Informação');
+
+    const icon = document.createElement('span');
+    icon.className = 'app-notification__icon';
+    icon.textContent = iconMap[type] || 'i';
+
+    const content = document.createElement('div');
+    content.className = 'app-notification__content';
+
+    const strong = document.createElement('strong');
+    strong.textContent = titleText;
+    const p = document.createElement('p');
+    p.textContent = message;
+
+    content.appendChild(strong);
+    content.appendChild(p);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'app-notification__close';
+    closeBtn.setAttribute('aria-label', 'Fechar');
+    closeBtn.textContent = '×';
+    closeBtn.addEventListener('click', () => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 160);
+    });
+
+    toast.appendChild(icon);
+    toast.appendChild(content);
+    toast.appendChild(closeBtn);
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    window.setTimeout(() => {
+        toast.classList.remove('show');
+        window.setTimeout(() => toast.remove(), 160);
+    }, duration);
+}
+
+function setInlineStatus(element, { type = 'loading', message }) {
+    if (!element) return;
+
+    element.innerHTML = '';
+    const state = document.createElement('div');
+    state.className = `status-message ${type}`;
+
+    const icon = document.createElement('span');
+    icon.className = type === 'loading' ? 'status-message__spinner' : 'status-message__icon';
+    icon.textContent = type === 'loading' ? '' : '•';
+
+    const text = document.createElement('span');
+    text.textContent = message;
+
+    state.appendChild(icon);
+    state.appendChild(text);
+    element.appendChild(state);
+}
+
+function setTableStatusMessage(tableBody, { type = 'loading', message }) {
+    if (!tableBody) return;
+
+    tableBody.innerHTML = '';
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.className = `table-status-cell ${type}`;
+
+    const state = document.createElement('div');
+    state.className = `status-message ${type}`;
+    const icon = document.createElement('span');
+    icon.className = type === 'loading' ? 'status-message__spinner' : 'status-message__icon';
+    icon.textContent = type === 'loading' ? '' : '•';
+    const text = document.createElement('span');
+    text.textContent = message;
+
+    state.appendChild(icon);
+    state.appendChild(text);
+    cell.appendChild(state);
+    row.appendChild(cell);
+    tableBody.appendChild(row);
+}
+
+function setButtonBusy(button, isBusy, label = 'Processando...') {
+    if (!button) return;
+    button.disabled = isBusy;
+    button.dataset.originalText = button.dataset.originalText || button.textContent;
+    button.textContent = isBusy ? label : button.dataset.originalText;
+}
+
+function getPortugueseMessage(error, fallback) {
+    const message = error?.message || '';
+    const normalized = message.toLowerCase();
+
+    if (!message) {
+        return fallback;
+    }
+
+    if (normalized.includes('failed to fetch') || normalized.includes('networkerror') || normalized.includes('load failed')) {
+        return 'Não foi possível conectar ao servidor.';
+    }
+
+    if (normalized.includes('not found')) {
+        return 'Recurso não encontrado.';
+    }
+
+    if (normalized.includes('unauthorized') || normalized.includes('token')) {
+        return 'Sessão expirada. Faça login novamente.';
+    }
+
+    if (normalized.includes('forbidden')) {
+        return 'Você não tem permissão para esta ação.';
+    }
+
+    if (normalized.includes('bad request') || normalized.includes('invalid')) {
+        return 'Os dados enviados são inválidos.';
+    }
+
+    if (normalized.includes('internal server error')) {
+        return 'Erro interno do servidor.';
+    }
+
+    return message;
+}
+
+function attachLogoutHandlers() {
+    const logoutLinks = document.querySelectorAll('#logoutModal a[href="login.html"]');
+    logoutLinks.forEach((link) => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            logout();
+            window.location.href = 'login.html';
+        });
+    });
+}
 
 // --- DASHBOARD DINÂMICO ---
         async function initDashboard() {
@@ -91,7 +250,7 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
                     }
                 }
             } catch (error) {
-                alert("Falha ao carregar dashboard: " + error.message);
+                showNotification({ type: 'error', title: 'Erro no dashboard', message: getPortugueseMessage(error, 'Não foi possível carregar o dashboard.') });
             }
         }
     // --- INTEGRAÇÃO MONITORAMENTO ---
@@ -99,19 +258,36 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
     const ctx = document.getElementById("trafficChart");
     if (!ctx) return;
 
-    try {
-        const rawData = await fetchTrafficData();
+    const chartContainer = document.querySelector('.chart-area');
+    if (chartContainer) {
+        chartContainer.innerHTML = '<div class="text-muted p-3">Carregando gráfico...</div>';
+    }
 
-        const chartLabels = rawData.labels;
-        const chartData = rawData.data;
+    try {
+        if (!window.Chart) {
+            throw new Error('Biblioteca de gráficos indisponível.');
+        }
+
+        const rawData = await fetchTrafficData();
+        const chartLabels = Array.isArray(rawData?.labels) && rawData.labels.length ? rawData.labels : ['Sem dados'];
+        const chartData = Array.isArray(rawData?.data) && rawData.data.length ? rawData.data : [0];
+
+        const labels = chartLabels.slice(0, 12);
+        const data = chartData.slice(0, 12);
+        const normalizedData = data.length < labels.length ? [...data, ...Array(labels.length - data.length).fill(0)] : data;
+
+        if (chartContainer) {
+            chartContainer.innerHTML = '';
+            chartContainer.appendChild(ctx);
+        }
 
         new window.Chart(ctx, {
             type: 'line',
             data: {
-                labels: chartLabels,
+                labels,
                 datasets: [{
                     label: 'Tráfego',
-                    data: chartData,
+                    data: normalizedData,
                     borderColor: '#4e73df',
                     backgroundColor: 'rgba(78,115,223,0.05)',
                     fill: true,
@@ -120,6 +296,7 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     x: { display: true },
@@ -128,16 +305,31 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
             }
         });
     } catch (error) {
-        alert("Falha ao renderizar gráfico de tráfego: " + error.message);
+        if (chartContainer) {
+            chartContainer.innerHTML = '<div class="text-muted p-3">Não foi possível renderizar o gráfico no momento.</div>';
+        }
+        showNotification({ type: 'error', title: 'Erro no gráfico', message: getPortugueseMessage(error, 'Não foi possível carregar o gráfico.') });
     }
 }
     async function renderRecentLogsSidebar() {
         const listGroup = document.querySelector('.list-group.list-group-flush');
         if (!listGroup) return;
-        listGroup.innerHTML = "";
+
+        listGroup.innerHTML = '';
+        setInlineStatus(listGroup, { type: 'loading', message: 'Carregando logs recentes...' });
+
         try {
             const logs = await fetchAlertsData();
-            logs.slice(0, 6).forEach(log => {
+            const items = Array.isArray(logs) ? logs.slice(0, 6) : [];
+
+            listGroup.innerHTML = '';
+
+            if (!items.length) {
+                listGroup.innerHTML = '<div class="text-muted p-2">Nenhum log recente no momento.</div>';
+                return;
+            }
+
+            items.forEach(log => {
                 const a = document.createElement('a');
                 a.href = "#";
                 a.classList.add('list-group-item', 'list-group-item-action');
@@ -150,7 +342,6 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
                 h6.textContent = log.type || 'Log';
 
                 const smallTime = document.createElement('small');
-                // Mostra apenas hora/minuto se possível
                 if (log.timestamp) {
                     const date = new Date(log.timestamp);
                     smallTime.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -181,13 +372,24 @@ import { fetchRules, createRule, updateRuleStatus, updateRuleName, deleteRule, f
                 listGroup.appendChild(a);
             });
         } catch (error) {
-            const err = document.createElement('div');
-            err.textContent = "Erro ao carregar logs recentes.";
-            err.classList.add('text-danger', 'p-2');
-            listGroup.appendChild(err);
+            listGroup.innerHTML = '';
+            setInlineStatus(listGroup, { type: 'error', message: getPortugueseMessage(error, 'Erro ao carregar logs recentes.') });
         }
     }
 document.addEventListener("DOMContentLoaded", () => {
+    const currentPath = window.location.pathname;
+    const currentPage = currentPath.split('/').filter(Boolean).pop() || 'index.html';
+    const isRootPage = currentPath === '/' || currentPath.endsWith('/');
+    const pageName = isRootPage ? 'index.html' : currentPage;
+    const protectedPages = ['index.html', 'alerts.html', 'rules.html', 'monitoring.html'];
+
+    if (protectedPages.includes(pageName) && !isAuthenticated()) {
+        window.location.replace('login.html');
+        return;
+    }
+
+    attachLogoutHandlers();
+
     const downloadFile = (filename, content, mimeType = "text/csv;charset=utf-8;") => {
         const blob = new Blob([content], { type: mimeType });
         const link = document.createElement("a");
@@ -210,16 +412,73 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
+    let currentRuleForEdit = null;
+    let pendingRuleRemoval = null;
 
+    function resetRuleForm() {
+        const nameInput = document.getElementById("ruleName");
+        const conditionInput = document.getElementById("ruleCondition");
+        const actionInput = document.getElementById("ruleAction");
+        const ruleIdInput = document.getElementById("ruleId");
+        if (nameInput) nameInput.value = "";
+        if (conditionInput) conditionInput.value = "";
+        if (actionInput) actionInput.value = "Alert";
+        if (ruleIdInput) ruleIdInput.value = "";
+        currentRuleForEdit = null;
+    }
+
+    function openRuleModal(rule = null) {
+        const modal = document.getElementById("addRuleModal");
+        const title = document.getElementById("addRuleModalLabel");
+        const nameInput = document.getElementById("ruleName");
+        const conditionInput = document.getElementById("ruleCondition");
+        const actionInput = document.getElementById("ruleAction");
+        const ruleIdInput = document.getElementById("ruleId");
+        const saveButton = document.getElementById("saveRuleBtn");
+
+        if (!modal || !title || !nameInput || !conditionInput || !actionInput || !ruleIdInput || !saveButton) {
+            return;
+        }
+
+        currentRuleForEdit = rule || null;
+        ruleIdInput.value = rule ? String(rule.id) : "";
+        nameInput.value = rule?.name || "";
+        conditionInput.value = rule?.condition || "";
+        actionInput.value = rule?.action || "Alert";
+        title.textContent = rule ? "Editar Regra" : "Adicionar Nova Regra";
+        saveButton.textContent = rule ? "Salvar Alterações" : "Salvar Regra";
+
+        if (window.$) {
+            window.$(modal).modal("show");
+        }
+    }
+
+    function showRemoveRuleConfirm(rule) {
+        const modal = document.getElementById("confirmRuleDeleteModal");
+        const message = document.getElementById("confirmRuleDeleteMessage");
+        if (!modal || !message) {
+            return;
+        }
+
+        pendingRuleRemoval = rule;
+        message.textContent = `Deseja remover a regra "${rule?.name || "esta regra"}"?`;
+
+        if (window.$) {
+            window.$(modal).modal("show");
+        }
+    }
 
 async function renderRulesTable() {
     const tableBody = document.querySelector("#rulesTable tbody");
     if (!tableBody) return;
     
     tableBody.innerHTML = "";
+    setTableStatusMessage(tableBody, { type: 'loading', message: 'Carregando regras...' });
 
     try {
         const rules = await fetchRules();
+
+        tableBody.innerHTML = "";
 
         if (!rules || rules.length === 0) {
             tableBody.innerHTML = "<tr><td colspan='6' class='text-center'>Nenhuma regra cadastrada.</td></tr>";
@@ -253,9 +512,9 @@ async function renderRulesTable() {
             const tdStatus = document.createElement("td");
             const span = document.createElement("span");
 
-            // Ajuste na verificação do status (Case Sensitive)
-            const isActive = rule.status === "Ativa"; 
-            span.textContent = rule.status;
+            const statusValue = String(rule.status || 'Inativa').trim();
+            const isActive = statusValue.toLowerCase() === 'ativa' || statusValue.toLowerCase() === 'active';
+            span.textContent = statusValue;
             span.classList.add("badge", isActive ? "badge-success" : "badge-secondary");
             tdStatus.appendChild(span);
             tr.appendChild(tdStatus);
@@ -266,14 +525,8 @@ async function renderRulesTable() {
             // Editar (PATCH)
             const btnEdit = document.createElement("button");
             btnEdit.textContent = "Editar";
-            btnEdit.classList.add("btn", "btn-sm", "btn-warning", "mr-1"); // Adicionei mr-1 para espaçamento
-            btnEdit.onclick = async () => {
-                const newName = prompt("Editar nome da regra:", rule.name);
-                if (newName && newName !== rule.name) {
-                    await updateRuleName(rule.id, newName);
-                    renderRulesTable();
-                }
-            };
+            btnEdit.classList.add("btn", "btn-sm", "btn-outline-warning", "mr-1");
+            btnEdit.addEventListener("click", () => openRuleModal(rule));
             tdBtns.appendChild(btnEdit);
 
             // Alternar Status (PUT/PATCH)
@@ -281,8 +534,13 @@ async function renderRulesTable() {
             btnToggle.textContent = isActive ? "Desativar" : "Ativar";
             btnToggle.classList.add("btn", "btn-sm", isActive ? "btn-danger" : "btn-success", "mr-1");
             btnToggle.onclick = async () => {
-                await updateRuleStatus(rule.id, isActive ? "Inativa" : "Ativa");
-                renderRulesTable();
+                try {
+                    await updateRuleStatus(rule.id, isActive ? "Inativa" : "Ativa");
+                    renderRulesTable();
+                    showNotification({ type: 'success', title: 'Status atualizado', message: `Regra ${isActive ? 'desativada' : 'ativada'} com sucesso.` });
+                } catch (error) {
+                    showNotification({ type: 'error', title: 'Erro ao alterar status', message: getPortugueseMessage(error, 'Não foi possível alterar o status da regra.') });
+                }
             };
             tdBtns.appendChild(btnToggle);
 
@@ -290,12 +548,7 @@ async function renderRulesTable() {
             const btnRemove = document.createElement("button");
             btnRemove.textContent = "Remover";
             btnRemove.classList.add("btn", "btn-sm", "btn-outline-danger");
-            btnRemove.onclick = async () => {
-                if (confirm(`Remover regra "${rule.name}"?`)) {
-                    await deleteRule(rule.id);
-                    renderRulesTable();
-                }
-            };
+            btnRemove.addEventListener("click", () => showRemoveRuleConfirm(rule));
             tdBtns.appendChild(btnRemove);
 
             tr.appendChild(tdBtns);
@@ -303,17 +556,18 @@ async function renderRulesTable() {
         });
     } catch (error) {
         console.error("Erro ao renderizar tabela:", error);
-        tableBody.innerHTML = "<tr><td colspan='6' class='text-center text-danger'>Erro ao conectar com o servidor.</td></tr>";
+        setTableStatusMessage(tableBody, { type: 'error', message: getPortugueseMessage(error, 'Erro ao conectar com o servidor.') });
+        showNotification({ type: 'error', title: 'Erro ao carregar regras', message: getPortugueseMessage(error, 'Erro ao conectar com o servidor.') });
     }
 }
 
     const showFakeSearch = (input) => {
         const query = input.value.trim();
         if (!query) {
-            alert("Digite um termo para buscar.");
+            showNotification({ type: 'warning', title: 'Busca vazia', message: 'Digite um termo para buscar.' });
             return;
         }
-        alert(`Resultados falsos encontrados para \"${query}\":\n- 12 eventos relacionados\n- 3 alertas críticos\n- 1 regra recomendada`);
+        showNotification({ type: 'info', title: 'Busca simulada', message: `Resultados falsos encontrados para "${query}".` });
     };
 
 
@@ -322,12 +576,20 @@ async function renderRulesTable() {
 
     // Função assíncrona para buscar alertas da API
     async function fetchAlerts() {
+        const tableBody = document.querySelector("#alertsListTable tbody");
+        if (tableBody) {
+            setTableStatusMessage(tableBody, { type: 'loading', message: 'Carregando alertas...' });
+        }
+
         try {
             const data = await fetchAlertsData();
             currentAlerts = Array.isArray(data) ? data : [];
         } catch (error) {
-            alert("Falha ao carregar alertas: " + error.message);
             currentAlerts = [];
+            if (tableBody) {
+                setTableStatusMessage(tableBody, { type: 'error', message: error.message || 'Falha ao carregar alertas.' });
+            }
+            showNotification({ type: 'error', title: 'Erro ao carregar alertas', message: getPortugueseMessage(error, 'Falha ao carregar alertas.') });
         }
     }
 
@@ -421,10 +683,11 @@ async function renderRulesTable() {
             btn.textContent = "Detalhes";
             btn.classList.add("btn", "btn-sm", "btn-info", "alert-details-btn");
             btn.addEventListener("click", () => {
-                window.alert(
-                    `Detalhes do Alerta ${alert.id}:\n\n` +
-                    `Tipo: ${alert.type}\nDescrição: ${alert.description}\nSeveridade: ${alert.severity}\nStatus: ${alert.status}\nTimestamp: ${alert.timestamp}`
-                );
+                showNotification({
+                    type: 'info',
+                    title: `Alerta ${alert.id}`,
+                    message: `${alert.type} • ${alert.description}`
+                });
             });
             tdBtn.appendChild(btn);
             tr.appendChild(tdBtn);
@@ -447,7 +710,7 @@ async function renderRulesTable() {
         event.preventDefault();
         const data = getTableData("dashboardAlertsTable");
         if (!data) {
-            alert("Não há dados de dashboard para gerar relatório.");
+            showNotification({ type: 'warning', title: 'Relatório', message: 'Não há dados de dashboard para gerar relatório.' });
             return;
         }
         downloadFile("relatorio-dashboard.csv", data);
@@ -457,7 +720,7 @@ async function renderRulesTable() {
         event.preventDefault();
         const data = getTableData("alertsListTable");
         if (!data) {
-            alert("Não há alertas para exportar.");
+            showNotification({ type: 'warning', title: 'Exportação', message: 'Não há alertas para exportar.' });
             return;
         }
         downloadFile("alertas-export.csv", data);
@@ -481,28 +744,39 @@ async function renderRulesTable() {
         const name = document.getElementById("ruleName").value.trim();
         const condition = document.getElementById("ruleCondition").value.trim();
         const action = document.getElementById("ruleAction").value.trim();
+        const ruleId = document.getElementById("ruleId").value;
 
         if (!name || !condition) {
-            alert("Preencha o nome e a condição da regra antes de salvar.");
+            showNotification({ type: 'warning', title: 'Validação', message: 'Preencha o nome e a condição da regra antes de salvar.' });
             return;
         }
 
-        const newRule = {
+        const isEditing = Boolean(ruleId);
+        const payload = {
             name,
             condition,
             action,
-            status: "Ativa"
+            status: currentRuleForEdit?.status || "Ativa"
         };
-        const created = await createRule(newRule);
-        if (created) {
-            renderRulesTable();
-            document.getElementById("ruleName").value = "";
-            document.getElementById("ruleCondition").value = "";
-            document.getElementById("ruleAction").selectedIndex = 0;
-            if (window.$) {
-                window.$("#addRuleModal").modal("hide");
+        setButtonBusy(saveRuleBtn, true, isEditing ? 'Salvando...' : 'Salvando...');
+        try {
+            const saved = isEditing ? await updateRule(Number(ruleId), payload) : await createRule(payload);
+            if (saved) {
+                renderRulesTable();
+                resetRuleForm();
+                if (window.$) {
+                    window.$("#addRuleModal").modal("hide");
+                }
+                showNotification({
+                    type: 'success',
+                    title: isEditing ? 'Regra atualizada' : 'Regra criada',
+                    message: isEditing ? 'Alterações salvas com sucesso.' : 'Regra adicionada com sucesso.'
+                });
             }
-            alert("Regra adicionada com sucesso.");
+        } catch (error) {
+            showNotification({ type: 'error', title: isEditing ? 'Erro ao atualizar regra' : 'Erro ao criar regra', message: getPortugueseMessage(error, 'Não foi possível salvar a regra.') });
+        } finally {
+            setButtonBusy(saveRuleBtn, false);
         }
     }
 
@@ -514,7 +788,11 @@ async function renderRulesTable() {
             return;
         }
         const cells = Array.from(row.querySelectorAll("td")).map(cell => cell.innerText.trim());
-        alert(`Detalhes do alerta:\nID: ${cells[0]}\nTimestamp: ${cells[1]}\nTipo: ${cells[2]}\nDescrição: ${cells[3]}\nSeveridade: ${cells[4]}\nStatus: ${cells[5]}`);
+        showNotification({
+            type: 'info',
+            title: `Alerta ${cells[0]}`,
+            message: `${cells[2]} • ${cells[3]}`
+        });
     };
 
     const generateReportBtn = document.getElementById("generateReportBtn");
@@ -535,6 +813,24 @@ async function renderRulesTable() {
     const saveRuleBtn = document.getElementById("saveRuleBtn");
     if (saveRuleBtn) {
         saveRuleBtn.addEventListener("click", handleSaveRule);
+    }
+
+    const confirmDeleteRuleBtn = document.getElementById("confirmDeleteRuleBtn");
+    if (confirmDeleteRuleBtn) {
+        confirmDeleteRuleBtn.addEventListener("click", async () => {
+            if (!pendingRuleRemoval) return;
+            try {
+                await deleteRule(pendingRuleRemoval.id);
+                pendingRuleRemoval = null;
+                renderRulesTable();
+                if (window.$) {
+                    window.$("#confirmRuleDeleteModal").modal("hide");
+                }
+                showNotification({ type: 'success', title: 'Regra removida', message: 'Regra removida com sucesso.' });
+            } catch (error) {
+                showNotification({ type: 'error', title: 'Erro ao remover regra', message: getPortugueseMessage(error, 'Não foi possível remover a regra.') });
+            }
+        });
     }
 
     document.querySelectorAll(".navbar-search").forEach((form) => {
@@ -594,19 +890,19 @@ async function renderRulesTable() {
         link.addEventListener("click", (event) => {
             event.preventDefault();
             const action = link.innerText.trim();
-            alert(`Ação de menu: ${action}. Esta funcionalidade está simulada com dados falsos.`);
+            showNotification({ type: 'info', title: 'Funcionalidade simulada', message: `Ação de menu: ${action}.` });
         });
     });
 
     // Logs buttons
     document.querySelectorAll('.block-ip-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            alert('IP bloqueado com sucesso!');
+            showNotification({ type: 'success', title: 'IP bloqueado', message: 'IP bloqueado com sucesso!' });
         });
     });
     document.querySelectorAll('.investigate-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            alert('Investigação iniciada. Resultados: Nenhuma ameaça adicional encontrada.');
+            showNotification({ type: 'info', title: 'Investigação iniciada', message: 'Resultados: nenhuma ameaça adicional encontrada.' });
         });
     });
 });

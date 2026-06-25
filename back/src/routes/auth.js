@@ -3,14 +3,26 @@ import prisma from '../lib/prisma.js';
 import logger from '../lib/logger.js';
 import { hashPassword, verifyPassword, generateToken } from '../lib/auth.js';
 import { authMiddleware } from '../lib/authMiddleware.js';
+import { validateBody } from '../lib/validation.js';
 
 const router = express.Router();
+
+const registerSchema = {
+  email: { required: true, type: 'string', minLength: 3 },
+  password: { required: true, type: 'string', minLength: 6 },
+  name: { required: true, type: 'string', minLength: 2 },
+};
+
+const loginSchema = {
+  email: { required: true, type: 'string', minLength: 3 },
+  password: { required: true, type: 'string', minLength: 6 },
+};
 
 /**
  * Register a new user
  * POST /api/auth/register
  */
-router.post('/register', async (req, res) => {
+router.post('/register', validateBody(registerSchema), async (req, res) => {
   try {
     const { email, password, name } = req.body;
 
@@ -69,7 +81,7 @@ router.post('/register', async (req, res) => {
  * Login user
  * POST /api/auth/login
  */
-router.post('/login', async (req, res) => {
+router.post('/login', validateBody(loginSchema), async (req, res) => {
   try {
     const { email, password } = req.body;
 

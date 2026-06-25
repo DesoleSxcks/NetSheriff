@@ -1,7 +1,20 @@
 import express from 'express'
 import prisma from '../lib/prisma.js'
+import { validateBody, validateParams } from '../lib/validation.js'
 
 const router = express.Router()
+
+const alertIdSchema = {
+  id: { required: true, type: 'integer', min: 1 }
+}
+
+const alertSchema = {
+  timestamp: { required: true, type: 'string', minLength: 2 },
+  type: { required: true, type: 'string', minLength: 2 },
+  description: { required: true, type: 'string', minLength: 2 },
+  severity: { required: true, type: 'string', minLength: 2 },
+  status: { required: true, type: 'string', minLength: 2 }
+}
 
 router.get('/', async (req, res) => {
   try {
@@ -16,7 +29,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateParams(alertIdSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
 
@@ -35,7 +48,7 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', validateBody(alertSchema), async (req, res) => {
   try {
     const { timestamp, type, description, severity, status } = req.body
 
@@ -56,7 +69,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateParams(alertIdSchema), validateBody(alertSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
     const { timestamp, type, description, severity, status } = req.body
@@ -79,7 +92,7 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateParams(alertIdSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
 

@@ -1,7 +1,19 @@
 import express from 'express'
 import prisma from '../lib/prisma.js'
+import { validateBody, validateParams } from '../lib/validation.js'
 
 const router = express.Router()
+
+const ruleIdSchema = {
+  id: { required: true, type: 'integer', min: 1 }
+}
+
+const ruleSchema = {
+  name: { required: true, type: 'string', minLength: 2 },
+  condition: { required: true, type: 'string', minLength: 2 },
+  action: { required: true, type: 'string', minLength: 2 },
+  status: { required: true, type: 'string', minLength: 2 }
+}
 
 router.get('/', async (req, res) => {
   try {
@@ -16,7 +28,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', validateParams(ruleIdSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
 
@@ -35,7 +47,7 @@ router.get('/:id', async (req, res) => {
   }
 })
 
-router.post('/', async (req, res) => {
+router.post('/', validateBody(ruleSchema), async (req, res) => {
   try {
     const { name, condition, action, status } = req.body
 
@@ -55,7 +67,7 @@ router.post('/', async (req, res) => {
   }
 })
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', validateParams(ruleIdSchema), validateBody(ruleSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
     const { name, condition, action, status } = req.body
@@ -77,7 +89,7 @@ router.put('/:id', async (req, res) => {
   }
 })
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', validateParams(ruleIdSchema), async (req, res) => {
   try {
     const id = Number(req.params.id)
 

@@ -353,7 +353,7 @@
         </div>
     </div>
 
-    <!-- Add Rule Modal-->
+    <!-- Add/Edit Rule Modal-->
     <div class="modal fade" id="addRuleModal" tabindex="-1" role="dialog" aria-labelledby="addRuleModalLabel"
         aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -382,11 +382,34 @@
                                 <option>Log</option>
                             </select>
                         </div>
+                        <input type="hidden" id="ruleId" value="">
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancelar</button>
                     <button id="saveRuleBtn" class="btn btn-primary" type="button">Salvar Regra</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Delete Modal -->
+    <div class="modal fade" id="confirmRuleDeleteModal" tabindex="-1" role="dialog" aria-labelledby="confirmRuleDeleteModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmRuleDeleteModalLabel">Confirmar remoção</h5>
+                    <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">×</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmRuleDeleteMessage">Deseja remover esta regra?</p>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" type="button" data-dismiss="modal">Cancelar</button>
+                    <button id="confirmDeleteRuleBtn" class="btn btn-danger" type="button">Remover</button>
                 </div>
             </div>
         </div>
