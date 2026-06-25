@@ -257,13 +257,71 @@
             </form>
 
             <div class="toggle-form">
-                <span id="toggleText">Não tem conta? <a id="toggleLink">Registre-se</a></span>
+                <span id="toggleText">Não tem conta? </span><a id="toggleLink">Registre-se</a>
             </div>
         </div>
     </div>
 
-    <script type="module">
-        import { login, register } from './js/api.js';
+    <script>
+        const BASE_URL = 'http://localhost:3000/api';
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('authToken');
+            return token ? { Authorization: `Bearer ${token}` } : {};
+        }
+
+        async function requestJson(path, options = {}) {
+            const headers = {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+                ...(options.headers || {})
+            };
+
+            const response = await fetch(`${BASE_URL}${path}`, {
+                ...options,
+                headers
+            });
+
+            const text = await response.text();
+            const data = text ? JSON.parse(text) : null;
+
+            if (!response.ok) {
+                const message = data?.error || data?.message || response.statusText || 'Erro na requisição';
+                throw new Error(message);
+            }
+
+            return data;
+        }
+
+        async function login(email, password) {
+            const data = await requestJson('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ email, password })
+            });
+
+            if (data?.token) {
+                localStorage.setItem('authToken', data.token);
+            }
+
+            return data;
+        }
+
+        async function register(email, password, name) {
+            const data = await requestJson('/auth/register', {
+                method: 'POST',
+                body: JSON.stringify({ email, password, name })
+            });
+
+            if (data?.token) {
+                localStorage.setItem('authToken', data.token);
+            }
+
+            return data;
+        }
+
+        function isAuthenticated() {
+            return Boolean(localStorage.getItem('authToken'));
+        }
 
         const loginTab = document.getElementById('loginTab');
         const registerTab = document.getElementById('registerTab');
@@ -278,18 +336,19 @@
         let isLoginMode = true;
 
         // Toggle between login and register
-        toggleLink.addEventListener('click', () => {
+        toggleLink.addEventListener('click', (event) => {
+            event.preventDefault();
             isLoginMode = !isLoginMode;
             if (isLoginMode) {
                 loginTab.style.display = 'block';
                 registerTab.style.display = 'none';
-                toggleText.innerHTML = 'Não tem conta? <a id="toggleLink">Registre-se</a>';
-                toggleLink.addEventListener('click', arguments.callee);
+                toggleText.textContent = 'Não tem conta? ';
+                toggleLink.textContent = 'Registre-se';
             } else {
                 loginTab.style.display = 'none';
                 registerTab.style.display = 'block';
-                toggleText.innerHTML = 'Já tem conta? <a id="toggleLink">Entre aqui</a>';
-                toggleLink.addEventListener('click', arguments.callee);
+                toggleText.textContent = 'Já tem conta? ';
+                toggleLink.textContent = 'Entre aqui';
             }
         });
 
@@ -382,7 +441,6 @@
         });
 
         // Check if already logged in
-        import { isAuthenticated } from './js/api.js';
         if (isAuthenticated()) {
             window.location.href = 'index.html';
         }

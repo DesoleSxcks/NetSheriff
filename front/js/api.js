@@ -1,91 +1,138 @@
 const BASE_URL = "http://localhost:3000/api";
 
+function getAuthHeaders() {
+  const token = localStorage.getItem('authToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function requestJson(path, options = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...getAuthHeaders(),
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    const message = data?.error || data?.message || response.statusText || 'Erro na requisição';
+    throw new Error(message);
+  }
+
+  return data;
+}
+
+export async function login(email, password) {
+  const data = await requestJson('/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+
+  if (data?.token) {
+    localStorage.setItem('authToken', data.token);
+  }
+
+  return data;
+}
+
+export async function register(email, password, name) {
+  const data = await requestJson('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, name })
+  });
+
+  if (data?.token) {
+    localStorage.setItem('authToken', data.token);
+  }
+
+  return data;
+}
+
+export function isAuthenticated() {
+  return Boolean(localStorage.getItem('authToken'));
+}
+
+export function logout() {
+  localStorage.removeItem('authToken');
+}
+
 export async function fetchRules() {
-    try {
-        const res = await fetch(`${BASE_URL}/rules`);
-        if (!res.ok) throw new Error("Erro ao buscar regras");
-        return await res.json();
-    } catch (error) {
-        alert("Falha ao buscar regras: " + error.message);
-        return [];
-    }
+  try {
+    return await requestJson('/rules');
+  } catch (error) {
+    alert('Falha ao buscar regras: ' + error.message);
+    return [];
+  }
 }
 
 export async function createRule(rule) {
-    try {
-        const res = await fetch(`${BASE_URL}/rules`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(rule)
-        });
-        if (!res.ok) throw new Error("Erro ao criar regra");
-        return await res.json();
-    } catch (error) {
-        alert("Falha ao criar regra: " + error.message);
-        return null;
-    }
+  try {
+    return await requestJson('/rules', {
+      method: 'POST',
+      body: JSON.stringify(rule)
+    });
+  } catch (error) {
+    alert('Falha ao criar regra: ' + error.message);
+    return null;
+  }
 }
 
 export async function updateRuleStatus(id, status) {
-    try {
-        const res = await fetch(`${BASE_URL}/rules/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ status })
-        });
-        if (!res.ok) throw new Error("Erro ao atualizar status da regra");
-        return await res.json();
-    } catch (error) {
-        alert("Falha ao atualizar status: " + error.message);
-        return null;
-    }
+  try {
+    return await requestJson(`/rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status })
+    });
+  } catch (error) {
+    alert('Falha ao atualizar status: ' + error.message);
+    return null;
+  }
 }
 
 export async function updateRuleName(id, name) {
-    try {
-        const res = await fetch(`${BASE_URL}/rules/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name })
-        });
-        if (!res.ok) throw new Error("Erro ao atualizar nome da regra");
-        return await res.json();
-    } catch (error) {
-        alert("Falha ao atualizar nome: " + error.message);
-        return null;
-    }
+  try {
+    return await requestJson(`/rules/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name })
+    });
+  } catch (error) {
+    alert('Falha ao atualizar nome: ' + error.message);
+    return null;
+  }
 }
 
 export async function deleteRule(id) {
-    try {
-        const res = await fetch(`${BASE_URL}/rules/${id}`, {
-            method: "DELETE" });
-        if (!res.ok) throw new Error("Erro ao remover regra");
-        return true;
-    } catch (error) {
-        alert("Falha ao remover regra: " + error.message);
-        return false;
-    }
+  try {
+    await requestJson(`/rules/${id}`, {
+      method: 'DELETE'
+    });
+    return true;
+  } catch (error) {
+    alert('Falha ao remover regra: ' + error.message);
+    return false;
+  }
 }
 
 export async function fetchAlertsData() {
-    try {
-        const res = await fetch(`${BASE_URL}/alerts`);
-        if (!res.ok) throw new Error("Erro ao buscar alertas");
-        return await res.json();
-    } catch (error) {
-        alert("Falha ao buscar alertas: " + error.message);
-        return [];
-    }
+  try {
+    return await requestJson('/alerts');
+  } catch (error) {
+    alert('Falha ao buscar alertas: ' + error.message);
+    return [];
+  }
 }
 
 export async function fetchTrafficData() {
-    try {
-        const res = await fetch(`${BASE_URL}/traffic`);
-        if (!res.ok) throw new Error("Erro ao buscar dados de tráfego");
-        return await res.json();
-    } catch (error) {
-        alert("Falha ao buscar tráfego: " + error.message);
-        return { labels: [], data: [] };
-    }
+  try {
+    return await requestJson('/traffic');
+  } catch (error) {
+    alert('Falha ao buscar tráfego: ' + error.message);
+    return { labels: [], data: [] };
+  }
 }
