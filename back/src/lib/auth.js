@@ -2,7 +2,11 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import logger from './logger.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET não definido. Defina JWT_SECRET em back/.env ou na configuração de ambiente.');
+}
 
 /**
  * Hash a password using scrypt

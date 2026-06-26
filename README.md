@@ -63,4 +63,19 @@ docker-compose up --build
 O backend ficará disponível em `http://localhost:3000` e o front em `http://localhost:8080`.
 
 ### Variáveis de ambiente
-O backend utiliza variáveis definidas em `.env`. Para referência há um arquivo de exemplo em `back/.env.example` com as variáveis necessárias (DATABASE_URL, PORT, LOG_LEVEL, JWT_SECRET).
+O backend utiliza variáveis definidas em `back/.env`. Há um arquivo `back/.env.example` versionado que mostra as variáveis necessárias:
+
+* `PORT`
+* `DATABASE_URL`
+* `JWT_SECRET`
+
+Para usar o ambiente local:
+
+1. Copie o arquivo de exemplo para `back/.env`:
+   ```bash
+   cp back/.env.example back/.env
+   ```
+2. Altere `JWT_SECRET` para um valor forte e único antes de iniciar o servidor.
+3. Se necessário, ajuste `DATABASE_URL` para o caminho do arquivo SQLite.
+
+> `back/.env` está listado em `back/.gitignore` para garantir que credenciais não sejam versionadas.
