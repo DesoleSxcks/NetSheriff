@@ -1,5 +1,6 @@
 import express from 'express'
 import prisma from '../lib/prisma.js'
+import { asyncHandler } from '../lib/errorHandler.js'
 import { validateBody, validateParams } from '../lib/validation.js'
 
 const router = express.Router()
@@ -15,93 +16,68 @@ const ruleSchema = {
   status: { required: true, type: 'string', minLength: 2 }
 }
 
-router.get('/', async (req, res) => {
-  try {
-    const rules = await prisma.rule.findMany({
-      orderBy: { id: 'asc' }
-    })
+router.get('/', asyncHandler(async (req, res) => {
+  const rules = await prisma.rule.findMany({
+    orderBy: { id: 'asc' }
+  })
 
-    res.json(rules)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao buscar regras' })
+  res.json(rules)
+}))
+
+router.get('/:id', validateParams(ruleIdSchema), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+
+  const rule = await prisma.rule.findUnique({
+    where: { id }
+  })
+
+  if (!rule) {
+    return res.status(404).json({ error: 'Regra não encontrada' })
   }
-})
 
-router.get('/:id', validateParams(ruleIdSchema), async (req, res) => {
-  try {
-    const id = Number(req.params.id)
+  res.json(rule)
+}))
 
-    const rule = await prisma.rule.findUnique({
-      where: { id }
-    })
+router.post('/', validateBody(ruleSchema), asyncHandler(async (req, res) => {
+  const { name, condition, action, status } = req.body
 
-    if (!rule) {
-      return res.status(404).json({ error: 'Regra não encontrada' })
+  const rule = await prisma.rule.create({
+    data: {
+      name,
+      condition,
+      action,
+      status
     }
+  })
 
-    res.json(rule)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao buscar regra' })
-  }
-})
+  res.status(201).json(rule)
+}))
 
-router.post('/', validateBody(ruleSchema), async (req, res) => {
-  try {
-    const { name, condition, action, status } = req.body
+router.put('/:id', validateParams(ruleIdSchema), validateBody(ruleSchema), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+  const { name, condition, action, status } = req.body
 
-    const rule = await prisma.rule.create({
-      data: {
-        name,
-        condition,
-        action,
-        status
-      }
-    })
+  const rule = await prisma.rule.update({
+    where: { id },
+    data: {
+      name,
+      condition,
+      action,
+      status
+    }
+  })
 
-    res.status(201).json(rule)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao criar regra' })
-  }
-})
+  res.json(rule)
+}))
 
-router.put('/:id', validateParams(ruleIdSchema), validateBody(ruleSchema), async (req, res) => {
-  try {
-    const id = Number(req.params.id)
-    const { name, condition, action, status } = req.body
+router.delete('/:id', validateParams(ruleIdSchema), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
 
-    const rule = await prisma.rule.update({
-      where: { id },
-      data: {
-        name,
-        condition,
-        action,
-        status
-      }
-    })
+  await prisma.rule.delete({
+    where: { id }
+  })
 
-    res.json(rule)
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao atualizar regra' })
-  }
-})
-
-router.delete('/:id', validateParams(ruleIdSchema), async (req, res) => {
-  try {
-    const id = Number(req.params.id)
-
-    await prisma.rule.delete({
-      where: { id }
-    })
-
-    res.status(204).send()
-  } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Erro ao remover regra' })
-  }
-})
+  res.status(204).send()
+}))
 
 export default router

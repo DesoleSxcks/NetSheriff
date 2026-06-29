@@ -1,16 +1,15 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import logger from './lib/logger.js';
 import { authMiddleware } from './lib/authMiddleware.js';
+import { errorHandler } from './lib/errorHandler.js';
 
 import authRouter from './routes/auth.js';
 import rulesRouter from './routes/rules.js';
 import alertsRouter from './routes/alerts.js';
 import logsRouter from './routes/logs.js';
 import trafficRouter from './routes/traffic.js';
-
-dotenv.config();
 
 const app = express();
 
@@ -45,6 +44,8 @@ app.use('/api/traffic', authMiddleware, trafficRouter);
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado' });
 });
+
+app.use(errorHandler);
 
 const port = Number(process.env.PORT ?? 3000);
 

@@ -1,5 +1,6 @@
 const BASE_URL = "http://localhost:3000/api";
 const DEMO_AUTH_KEY = 'demoAuth';
+const AUTH_USER_KEY = 'authUser';
 const RULES_STORAGE_KEY = 'netsheriff.rules';
 
 const mockRules = [
@@ -41,6 +42,31 @@ const mockTraffic = {
 function getAuthHeaders() {
   const token = localStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function saveAuthData(data) {
+  if (data?.token) {
+    localStorage.setItem('authToken', data.token);
+  }
+
+  if (data?.user) {
+    localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+  }
+}
+
+function getStoredUser() {
+  try {
+    const storedUser = localStorage.getItem(AUTH_USER_KEY);
+    return storedUser ? JSON.parse(storedUser) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function clearAuthData() {
+  localStorage.removeItem('authToken');
+  localStorage.removeItem(AUTH_USER_KEY);
+  localStorage.removeItem(DEMO_AUTH_KEY);
 }
 
 function getHttpErrorMessage(response, data) {
@@ -94,9 +120,7 @@ async function requestJson(path, options = {}) {
       const name = payload.name || 'Usuário';
 
       localStorage.setItem(DEMO_AUTH_KEY, 'true');
-      localStorage.setItem('authToken', 'demo-token');
-
-      return {
+      const fallbackData = {
         token: 'demo-token',
         user: {
           id: 1,
@@ -105,6 +129,9 @@ async function requestJson(path, options = {}) {
         },
         message: 'Login local ativado. Você entrou em modo demonstração.'
       };
+      saveAuthData(fallbackData);
+
+      return fallbackData;
     }
 
     if (path === '/rules') {
@@ -191,7 +218,7 @@ export async function login(email, password) {
   });
 
   if (data?.token) {
-    localStorage.setItem('authToken', data.token);
+    saveAuthData(data);
   }
 
   return data;
@@ -204,10 +231,22 @@ export async function register(email, password, name) {
   });
 
   if (data?.token) {
-    localStorage.setItem('authToken', data.token);
+    saveAuthData(data);
   }
 
   return data;
+}
+
+export function getCurrentUser() {
+  return getStoredUser();
+}
+
+export async function fetchCurrentUser() {
+  const user = await requestJson('/auth/me');
+  if (user) {
+    saveAuthData({ user });
+  }
+  return user;
 }
 
 export function isAuthenticated() {
@@ -215,8 +254,7 @@ export function isAuthenticated() {
 }
 
 export function logout() {
-  localStorage.removeItem('authToken');
-  localStorage.removeItem(DEMO_AUTH_KEY);
+  clearAuthData();
 }
 
 export async function fetchRules() {

@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import logger from './logger.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
+const SCRYPT_KEY_LEN = 64;
+const SCRYPT_SALT_LEN = 16;
 
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET não definido. Defina JWT_SECRET em back/.env ou na configuração de ambiente.');
@@ -15,12 +17,12 @@ if (!JWT_SECRET) {
  */
 export async function hashPassword(password) {
   return new Promise((resolve, reject) => {
-    const salt = crypto.randomBytes(16);
-    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+    const salt = crypto.randomBytes(SCRYPT_SALT_LEN);
+    crypto.scrypt(password, salt, SCRYPT_KEY_LEN, (err, derivedKey) => {
       if (err) {
         reject(err);
       } else {
-        resolve(salt.toString('hex') + ':' + derivedKey.toString('hex'));
+        resolve(`${salt.toString('hex')}:${derivedKey.toString('hex')}`);
       }
     });
   });
@@ -34,14 +36,23 @@ export async function hashPassword(password) {
  */
 export async function verifyPassword(password, hash) {
   return new Promise((resolve, reject) => {
-    const parts = hash.split(':');
-    const salt = Buffer.from(parts[0], 'hex');
-    const key = Buffer.from(parts[1], 'hex');
-    crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+    const [saltHex, keyHex] = hash.split(':');
+    if (!saltHex || !keyHex) {
+      return resolve(false);
+    }
+
+    const salt = Buffer.from(saltHex, 'hex');
+    const key = Buffer.from(keyHex, 'hex');
+
+    crypto.scrypt(password, salt, key.length, (err, derivedKey) => {
       if (err) {
         reject(err);
       } else {
-        resolve(crypto.timingSafeEqual(key, derivedKey));
+        try {
+          resolve(crypto.timingSafeEqual(key, derivedKey));
+        } catch (compareError) {
+          resolve(false);
+        }
       }
     });
   });

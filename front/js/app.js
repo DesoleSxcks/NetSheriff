@@ -1,4 +1,4 @@
-import { fetchRules, createRule, updateRule, updateRuleStatus, updateRuleName, deleteRule, fetchAlertsData, fetchTrafficData, isAuthenticated, logout } from './api.js';
+import { fetchRules, createRule, updateRule, updateRuleStatus, updateRuleName, deleteRule, fetchAlertsData, fetchTrafficData, getCurrentUser, isAuthenticated, logout } from './api.js';
 
 function ensureNotificationContainer() {
     let container = document.getElementById('appNotifications');
@@ -146,6 +146,16 @@ function getPortugueseMessage(error, fallback) {
     }
 
     return message;
+}
+
+function updateUserDisplay() {
+    const user = getCurrentUser();
+    const displayName = user?.name || 'Administrador';
+    const userDisplayElements = document.querySelectorAll('#userDisplayName');
+
+    userDisplayElements.forEach((element) => {
+        element.textContent = displayName;
+    });
 }
 
 function attachLogoutHandlers() {
@@ -389,6 +399,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     attachLogoutHandlers();
+    updateUserDisplay();
 
     const downloadFile = (filename, content, mimeType = "text/csv;charset=utf-8;") => {
         const blob = new Blob([content], { type: mimeType });

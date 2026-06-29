@@ -4,6 +4,7 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import 'dotenv/config'
+import { hashPassword } from '../src/lib/auth.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -61,6 +62,25 @@ async function main() {
       data: JSON.stringify(traffic.data)
     }
   });
+
+  const adminEmail = 'admin@netsherrif.com';
+  const adminName = 'Administrador';
+  const adminPassword = 'senha123';
+
+  const existingAdmin = await prisma.user.findUnique({
+    where: { email: adminEmail }
+  });
+
+  if (!existingAdmin) {
+    const adminHash = await hashPassword(adminPassword);
+    await prisma.user.create({
+      data: {
+        email: adminEmail,
+        name: adminName,
+        password: adminHash
+      }
+    });
+  }
 }
 
 main()
