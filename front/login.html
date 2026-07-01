@@ -286,6 +286,12 @@
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         const loading = document.getElementById('loading');
+        const loginEmailInput = document.getElementById('loginEmail');
+        const loginPasswordInput = document.getElementById('loginPassword');
+        const registerNameInput = document.getElementById('registerName');
+        const registerEmailInput = document.getElementById('registerEmail');
+        const registerPasswordInput = document.getElementById('registerPassword');
+        const registerPassword2Input = document.getElementById('registerPassword2');
 
         let isLoginMode = true;
 
@@ -332,11 +338,17 @@
             registerBtn.disabled = isLoading;
         }
 
-        // Login
-        loginBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
+        async function submitLogin(e) {
+            if (e) {
+                e.preventDefault();
+            }
+
+            if (loading.classList.contains('show')) {
+                return;
+            }
+
+            const email = loginEmailInput.value.trim();
+            const password = loginPasswordInput.value;
 
             if (!email || !password) {
                 showError('Email e senha são obrigatórios');
@@ -355,15 +367,32 @@
             } finally {
                 setLoading(false);
             }
+        }
+
+        // Login
+        loginBtn.addEventListener('click', submitLogin);
+
+        [loginEmailInput, loginPasswordInput].forEach((input) => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    submitLogin(event);
+                }
+            });
         });
 
-        // Register
-        registerBtn.addEventListener('click', async (e) => {
-            e.preventDefault();
-            const name = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value;
-            const password2 = document.getElementById('registerPassword2').value;
+        async function submitRegister(e) {
+            if (e) {
+                e.preventDefault();
+            }
+
+            if (loading.classList.contains('show')) {
+                return;
+            }
+
+            const name = registerNameInput.value.trim();
+            const email = registerEmailInput.value.trim();
+            const password = registerPasswordInput.value;
+            const password2 = registerPassword2Input.value;
 
             if (!name || !email || !password) {
                 showError('Todos os campos são obrigatórios');
@@ -392,6 +421,17 @@
             } finally {
                 setLoading(false);
             }
+        }
+
+        // Register
+        registerBtn.addEventListener('click', submitRegister);
+
+        [registerNameInput, registerEmailInput, registerPasswordInput, registerPassword2Input].forEach((input) => {
+            input.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    submitRegister(event);
+                }
+            });
         });
 
         // Check if already logged in

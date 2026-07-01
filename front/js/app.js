@@ -264,6 +264,144 @@ function attachLogoutHandlers() {
             }
         }
     // --- INTEGRAÇÃO MONITORAMENTO ---
+    let alertsTrafficChart = null;
+    let alertsSeverityChart = null;
+    let alertsChartsRefreshTimer = null;
+
+    function resetChartState(canvasId, message) {
+        const canvas = document.getElementById(canvasId);
+        const messageEl = document.getElementById(`${canvasId}Message`);
+        if (canvas) {
+            canvas.style.display = message ? 'none' : 'block';
+        }
+        if (messageEl) {
+            messageEl.textContent = message || '';
+        }
+    }
+
+    function destroyAlertsCharts() {
+        if (alertsTrafficChart) {
+            alertsTrafficChart.destroy();
+            alertsTrafficChart = null;
+        }
+        if (alertsSeverityChart) {
+            alertsSeverityChart.destroy();
+            alertsSeverityChart = null;
+        }
+    }
+
+    async function renderAlertsCharts() {
+        if (!window.location.pathname.endsWith('alerts.html')) return;
+
+        const lineCanvas = document.getElementById('lineChart');
+        const pieCanvas = document.getElementById('pieChart');
+        if (!lineCanvas || !pieCanvas) return;
+
+        resetChartState('lineChart', 'Carregando gráfico de tráfego...');
+        resetChartState('pieChart', 'Carregando distribuição de ameaças...');
+
+        if (!window.Chart) {
+            resetChartState('lineChart', 'A biblioteca de gráficos não está disponível.');
+            resetChartState('pieChart', 'A biblioteca de gráficos não está disponível.');
+            showNotification({ type: 'warning', title: 'Gráfico indisponível', message: 'Não foi possível renderizar os gráficos no momento.' });
+            return;
+        }
+
+        try {
+            const [alertsData, trafficData] = await Promise.all([
+                fetchAlertsData(),
+                fetchTrafficData()
+            ]);
+
+            const alerts = Array.isArray(alertsData) ? alertsData : [];
+            const trafficLabels = Array.isArray(trafficData?.labels) && trafficData.labels.length ? trafficData.labels : [];
+            const trafficValues = Array.isArray(trafficData?.data) && trafficData.data.length ? trafficData.data : [];
+
+            destroyAlertsCharts();
+
+            if (trafficLabels.length && trafficValues.length) {
+                alertsTrafficChart = new window.Chart(lineCanvas, {
+                    type: 'line',
+                    data: {
+                        labels: trafficLabels.slice(0, 12),
+                        datasets: [{
+                            label: 'Tráfego',
+                            data: trafficValues.slice(0, 12),
+                            borderColor: '#4e73df',
+                            backgroundColor: 'rgba(78,115,223,0.08)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+                resetChartState('lineChart');
+            } else {
+                resetChartState('lineChart', 'Nenhum dado de tráfego disponível no momento.');
+            }
+
+            const severityCounts = alerts.reduce((acc, alert) => {
+                const severity = String(alert?.severity || 'Unknown').trim();
+                if (!severity || severity === 'Unknown') {
+                    return acc;
+                }
+                acc[severity] = (acc[severity] || 0) + 1;
+                return acc;
+            }, {});
+
+            const severityLabels = Object.keys(severityCounts);
+            const severityValues = severityLabels.map((label) => severityCounts[label]);
+            const severityColors = {
+                High: '#e74a3b',
+                Medium: '#f6c23e',
+                Low: '#36b9cc'
+            };
+
+            if (severityLabels.length && severityValues.some((value) => value > 0)) {
+                alertsSeverityChart = new window.Chart(pieCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: severityLabels,
+                        datasets: [{
+                            data: severityValues,
+                            backgroundColor: severityLabels.map((label) => severityColors[label] || '#858796')
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+                resetChartState('pieChart');
+            } else {
+                resetChartState('pieChart', 'Nenhum alerta cadastrado para exibir a distribuição.');
+            }
+        } catch (error) {
+            destroyAlertsCharts();
+            resetChartState('lineChart', 'Não foi possível carregar o gráfico de tráfego.');
+            resetChartState('pieChart', 'Não foi possível carregar a distribuição de ameaças.');
+            showNotification({ type: 'error', title: 'Erro ao carregar gráficos', message: getPortugueseMessage(error, 'Não foi possível carregar os gráficos.') });
+        }
+    }
+
+    function startAlertsChartsRefresh() {
+        if (alertsChartsRefreshTimer) {
+            window.clearInterval(alertsChartsRefreshTimer);
+        }
+
+        alertsChartsRefreshTimer = window.setInterval(() => {
+            if (window.location.pathname.endsWith('alerts.html')) {
+                renderAlertsCharts();
+            }
+        }, 30000);
+    }
+
     async function renderTrafficChart() {
     const ctx = document.getElementById("trafficChart");
     if (!ctx) return;
@@ -860,6 +998,10 @@ async function renderRulesTable() {
     async function initAlerts() {
         await fetchAlerts();
         renderAlertsTable(filterAlerts());
+        if (window.location.pathname.endsWith('alerts.html')) {
+            await renderAlertsCharts();
+            startAlertsChartsRefresh();
+        }
     }
 
     const severityFilter = document.getElementById("severityFilter");

@@ -230,13 +230,23 @@
                     <div class="col-xl-8">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Volume de Tráfego por Hora</h6></div>
-                            <div class="card-body"><canvas id="lineChart"></canvas></div>
+                            <div class="card-body">
+                                <div style="position: relative; height: 320px;">
+                                    <canvas id="lineChart"></canvas>
+                                    <div id="lineChartMessage" class="text-muted small mt-2"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-xl-4">
                         <div class="card shadow mb-4">
                             <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Distribuição de Ameaças</h6></div>
-                            <div class="card-body"><canvas id="pieChart" class="chart-pie"></canvas></div>
+                            <div class="card-body">
+                                <div style="position: relative; height: 320px;">
+                                    <canvas id="pieChart" class="chart-pie"></canvas>
+                                    <div id="pieChartMessage" class="text-muted small mt-2"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -270,20 +280,6 @@
         <!-- End of Content Wrapper -->
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-       
-    <script>
-        // Gráfico de Linha
-        new Chart(document.getElementById('lineChart'), {
-            type: 'line',
-            data: { labels: ['00h', '04h', '08h', '12h', '16h', '20h'], datasets: [{ label: 'Tentativas', data: [5, 12, 8, 25, 10, 5], borderColor: '#4e73df', tension: 0.3 }] }
-        });
-
-        // Gráfico de Pizza
-        new Chart(document.getElementById('pieChart'), {
-            type: 'doughnut',
-            data: { labels: ['DDoS', 'Malware', 'SQLi'], datasets: [{ data: [55, 30, 15], backgroundColor: ['#e74a3b', '#f6c23e', '#36b9cc'] }] }
-        });
-    </script>
     <!-- Bootstrap core JavaScript-->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
