@@ -5,8 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon --watch src --watch prisma --exec node src/server.js",
+    "dev:local": "npm run dev",
     "start": "node src/server.js",
-    "prisma": "prisma"
+    "prisma": "prisma",
+    "setup:local": "node scripts/create-env-if-missing.js && mkdir -p data && npm run db:generate && npm run db:migrate && npm run db:seed",
+    "setup:iptables": "sudo bash scripts/setup-iptables-permission.sh",
+    "check:iptables": "bash scripts/check-iptables-permission.sh",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset --force"
   },
   "dependencies": {
     "@prisma/adapter-better-sqlite3": "^7.8.0",

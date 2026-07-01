@@ -290,10 +290,55 @@ export async function deleteRule(id) {
   return true;
 }
 
+function sortBySeverity(alerts) {
+  const priority = { high: 0, medium: 1, low: 2, info: 3 };
+  const firewallOrigins = new Set(['iptables', 'auditoria firewall']);
+
+  return alerts.slice().sort((a, b) => {
+    const aSeverity = priority[String(a.severity || '').toLowerCase()] ?? 4;
+    const bSeverity = priority[String(b.severity || '').toLowerCase()] ?? 4;
+    if (aSeverity !== bSeverity) return aSeverity - bSeverity;
+
+    const aOrigin = String(a.origin || '').toLowerCase();
+    const bOrigin = String(b.origin || '').toLowerCase();
+    const aFirewall = firewallOrigins.has(aOrigin);
+    const bFirewall = firewallOrigins.has(bOrigin);
+    if (aFirewall !== bFirewall) return aFirewall ? -1 : 1;
+
+    return String(b.timestamp || '').localeCompare(String(a.timestamp || ''));
+  });
+}
+
+function limitAuditAlerts(auditAlerts, max = 5) {
+  return sortBySeverity(auditAlerts).slice(0, max);
+}
+
 export async function fetchAlertsData() {
-  return await requestJson('/alerts');
+  const [alertsResult, auditResult] = await Promise.allSettled([
+    requestJson('/alerts'),
+    requestJson('/audit/iptables')
+  ]);
+
+  const alerts = Array.isArray(alertsResult.value) ? alertsResult.value : [];
+  const auditAlerts = Array.isArray(auditResult.value?.alerts) ? auditResult.value.alerts.map((alert) => ({
+    ...alert,
+    origin: alert.origin || 'Auditoria Firewall'
+  })) : [];
+
+  const merged = [
+    ...limitAuditAlerts(auditAlerts, 5),
+    ...alerts.map((alert) => ({ ...alert, origin: alert.origin || 'Banco' }))
+  ];
+
+  return sortBySeverity(merged);
 }
 
 export async function fetchTrafficData() {
   return await requestJson('/traffic');
+}
+
+ 
+
+export async function fetchIptablesAudit() {
+  return await requestJson('/audit/iptables');
 }

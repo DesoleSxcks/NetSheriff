@@ -10,6 +10,7 @@ import rulesRouter from './routes/rules.js';
 import alertsRouter from './routes/alerts.js';
 import logsRouter from './routes/logs.js';
 import trafficRouter from './routes/traffic.js';
+import auditRouter from './routes/audit.js';
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use('/api/rules', authMiddleware, rulesRouter);
 app.use('/api/alerts', authMiddleware, alertsRouter);
 app.use('/api/logs', authMiddleware, logsRouter);
 app.use('/api/traffic', authMiddleware, trafficRouter);
+app.use('/api/audit', authMiddleware, auditRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint não encontrado' });

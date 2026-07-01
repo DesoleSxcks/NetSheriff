@@ -1,4 +1,4 @@
-import { fetchRules, createRule, updateRule, updateRuleStatus, updateRuleName, deleteRule, fetchAlertsData, fetchTrafficData, getCurrentUser, isAuthenticated, logout } from './api.js';
+import { fetchRules, createRule, updateRule, updateRuleStatus, updateRuleName, deleteRule, fetchAlertsData, fetchTrafficData, fetchIptablesAudit, getCurrentUser, isAuthenticated, logout } from './api.js';
 
 function ensureNotificationContainer() {
     let container = document.getElementById('appNotifications');
@@ -169,7 +169,83 @@ function attachLogoutHandlers() {
     });
 }
 
-// --- DASHBOARD DINÂMICO ---
+function isFirewallOrigin(origin) {
+        const normalized = String(origin || '').toLowerCase();
+        return normalized === 'iptables' || normalized === 'auditoria firewall';
+    }
+
+    function isDockerFinding(entry) {
+        const text = `${entry.title || ''} ${entry.description || ''} ${entry.origin || ''}`.toLowerCase();
+        return text.includes('docker') || text.includes('docker-') || text.includes('docker bridge');
+    }
+
+    function isRelevantFirewallFinding(finding) {
+        if (!finding || isDockerFinding(finding)) return false;
+        const severity = String(finding.severity || '').toLowerCase();
+        if (!['high', 'medium'].includes(severity)) return false;
+
+        const text = `${finding.title || ''} ${finding.description || ''}`.toLowerCase();
+        if (text.includes('docker')) return false;
+        if (text.includes('accept') && (text.includes('input') || text.includes('any') || text.includes('all') || text.includes('genérica') || text.includes('generic'))) {
+            return true;
+        }
+        if (text.includes('política padrão') && text.includes('accept')) {
+            return true;
+        }
+        if (text.includes('sem drop') || text.includes('sem reject') || text.includes('sem rejeição') || text.includes('sem regras de drop') || text.includes('sem regras de reject')) {
+            return true;
+        }
+        if (text.includes('porta aberta') || text.includes('port open') || text.includes('sensitive port') || text.includes('porta sensível')) {
+            return true;
+        }
+        return false;
+    }
+
+    function mapFirewallFindingToAlert(finding, index, checkedAt) {
+        return {
+            id: `fw-${index + 1}`,
+            timestamp: finding.checkedAt || checkedAt || new Date().toISOString(),
+            type: finding.title || 'Achado de auditoria',
+            origin: 'Auditoria Firewall',
+            description: finding.description || finding.title || '',
+            severity: String(finding.severity || 'Medium').charAt(0).toUpperCase() + String(finding.severity || 'Medium').slice(1).toLowerCase()
+        };
+    }
+
+    function formatAlertOrigin(origin) {
+        if (!origin) return 'Sistema';
+
+        const normalized = String(origin).toLowerCase();
+        if (normalized.includes('iptables') || normalized.includes('firewall') || normalized.includes('audit')) {
+            return 'Auditoria Firewall';
+        }
+        if (normalized.includes('banco')) return 'Banco';
+        if (normalized.includes('simulado')) return 'Simulado';
+        if (normalized.includes('sistema')) return 'Sistema';
+        return origin;
+    }
+
+    function buildDashboardAlerts(alerts, auditData) {
+        const firewallAlerts = Array.isArray(alerts)
+            ? alerts.filter((alert) => isFirewallOrigin(alert.origin) && !isDockerFinding(alert)).slice(0, 3)
+            : [];
+
+        if (!firewallAlerts.length && auditData?.allFindings?.length) {
+            const relevantFindings = auditData.allFindings
+                .filter(isRelevantFirewallFinding)
+                .slice(0, 3)
+                .map((finding, index) => mapFirewallFindingToAlert(finding, index, auditData.checkedAt));
+            firewallAlerts.push(...relevantFindings);
+        }
+
+        const systemAlerts = Array.isArray(alerts)
+            ? alerts.filter((alert) => !isFirewallOrigin(alert.origin)).slice(0, 2)
+            : [];
+
+        return [...firewallAlerts, ...systemAlerts].slice(0, 3);
+    }
+
+    // --- DASHBOARD DINÂMICO ---
         async function initDashboard() {
             try {
                 // Busca dados
@@ -197,31 +273,60 @@ function attachLogoutHandlers() {
                     }
                 }
 
-                // Atualiza tabela Alertas Recentes
-                const alertsTable = document.getElementById("dashboardAlertsTable");
-                if (alertsTable) {
-                    const tbody = alertsTable.querySelector("tbody");
-                    if (tbody) {
-                        tbody.innerHTML = "";
-                        alerts.slice(-3).reverse().forEach(alert => {
+                // Atualiza resumo da auditoria de firewall
+                const auditSummaryStatus = document.getElementById("auditSummaryStatus");
+                const auditSummaryText = document.getElementById("auditSummaryText");
+                try {
+                    const audit = await fetchIptablesAudit();
+                    if (auditSummaryStatus) {
+                        auditSummaryStatus.textContent = audit.available ? 'Disponível' : 'Indisponível';
+                    }
+                    if (auditSummaryText) {
+                        const riskLevel = audit.summary?.riskLevel || 'unknown';
+                        const findingsCount = audit.summary?.findingsCount ?? 0;
+                        auditSummaryText.textContent = audit.available
+                            ? `${String(riskLevel).toUpperCase()} • ${findingsCount} achados`
+                            : 'Auditoria real indisponível';
+                    }
+                } catch (error) {
+                    if (auditSummaryStatus) {
+                        auditSummaryStatus.textContent = 'Indisponível';
+                    }
+                    if (auditSummaryText) {
+                        auditSummaryText.textContent = 'Dados reais do firewall indisponíveis';
+                    }
+                }
+
+                            // Atualiza tabela Alertas Recentes
+                const alertRows = buildDashboardAlerts(alerts, await fetchIptablesAudit());
+                const alertsTableBody = document.getElementById("dashboardAlertsTableBody");
+                if (alertsTableBody) {
+                    alertsTableBody.innerHTML = "";
+                    if (!alertRows.length) {
+                        setTableStatusMessage(alertsTableBody, { type: 'info', message: 'Nenhum alerta recente encontrado.' });
+                    } else {
+                        alertRows.forEach(alert => {
                             const tr = document.createElement("tr");
-                            // ID
                             const tdId = document.createElement("td");
                             tdId.textContent = alert.id;
                             tr.appendChild(tdId);
-                            // Timestamp
+
                             const tdTs = document.createElement("td");
                             tdTs.textContent = alert.timestamp;
                             tr.appendChild(tdTs);
-                            // Tipo
+
                             const tdType = document.createElement("td");
                             tdType.textContent = alert.type;
                             tr.appendChild(tdType);
-                            // Descrição
+
+                            const tdOrigin = document.createElement("td");
+                            tdOrigin.textContent = formatAlertOrigin(alert.origin);
+                            tr.appendChild(tdOrigin);
+
                             const tdDesc = document.createElement("td");
                             tdDesc.textContent = alert.description;
                             tr.appendChild(tdDesc);
-                            // Severidade
+
                             const tdSev = document.createElement("td");
                             const span = document.createElement("span");
                             span.textContent = alert.severity;
@@ -230,7 +335,8 @@ function attachLogoutHandlers() {
                             else span.classList.add("badge", "badge-success");
                             tdSev.appendChild(span);
                             tr.appendChild(tdSev);
-                            tbody.appendChild(tr);
+
+                            alertsTableBody.appendChild(tr);
                         });
                     }
                 }
@@ -308,25 +414,30 @@ function attachLogoutHandlers() {
         }
 
         try {
-            const [alertsData, trafficData] = await Promise.all([
-                fetchAlertsData(),
-                fetchTrafficData()
-            ]);
-
+            const alertsData = await fetchAlertsData();
             const alerts = Array.isArray(alertsData) ? alertsData : [];
-            const trafficLabels = Array.isArray(trafficData?.labels) && trafficData.labels.length ? trafficData.labels : [];
-            const trafficValues = Array.isArray(trafficData?.data) && trafficData.data.length ? trafficData.data : [];
 
             destroyAlertsCharts();
 
-            if (trafficLabels.length && trafficValues.length) {
+            const timeSeries = alerts.reduce((acc, alert) => {
+                const date = new Date(alert.timestamp || new Date().toISOString());
+                if (Number.isNaN(date.getTime())) return acc;
+                const label = `${String(date.getHours()).padStart(2, '0')}:00`;
+                acc[label] = (acc[label] || 0) + 1;
+                return acc;
+            }, {});
+
+            const chartLabels = Object.keys(timeSeries).sort();
+            const chartValues = chartLabels.map((label) => timeSeries[label]);
+
+            if (chartLabels.length && chartValues.length) {
                 alertsTrafficChart = new window.Chart(lineCanvas, {
                     type: 'line',
                     data: {
-                        labels: trafficLabels.slice(0, 12),
+                        labels: chartLabels,
                         datasets: [{
-                            label: 'Tráfego',
-                            data: trafficValues.slice(0, 12),
+                            label: 'Alertas',
+                            data: chartValues,
                             borderColor: '#4e73df',
                             backgroundColor: 'rgba(78,115,223,0.08)',
                             fill: true,
@@ -342,7 +453,7 @@ function attachLogoutHandlers() {
                 });
                 resetChartState('lineChart');
             } else {
-                resetChartState('lineChart', 'Nenhum dado de tráfego disponível no momento.');
+                resetChartState('lineChart', 'Nenhum dado de alertas disponível no momento.');
             }
 
             const severityCounts = alerts.reduce((acc, alert) => {
@@ -489,15 +600,30 @@ function attachLogoutHandlers() {
                 h6.classList.add('mb-1');
                 h6.textContent = log.type || 'Log';
 
-                const smallTime = document.createElement('small');
-                if (log.timestamp) {
-                    const date = new Date(log.timestamp);
-                    smallTime.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const badge = document.createElement('span');
+                badge.classList.add('badge', 'badge-pill');
+                if (String(log.origin).toLowerCase() === 'iptables') {
+                    badge.classList.add('badge-primary');
+                    badge.textContent = 'Firewall';
                 } else {
-                    smallTime.textContent = "-";
+                    badge.classList.add('badge-secondary');
+                    badge.textContent = 'Interno';
                 }
 
-                divTop.appendChild(h6);
+                const leftGroup = document.createElement('div');
+                leftGroup.classList.add('d-flex', 'w-100', 'justify-content-between');
+                leftGroup.appendChild(h6);
+                leftGroup.appendChild(badge);
+
+                const smallTime = document.createElement('small');
+                    if (log.timestamp) {
+                        const date = new Date(log.timestamp);
+                        smallTime.textContent = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    } else {
+                        smallTime.textContent = "-";
+                    }
+
+                divTop.appendChild(leftGroup);
                 divTop.appendChild(smallTime);
 
                 const p = document.createElement('p');
@@ -732,7 +858,23 @@ async function renderRulesTable() {
 
         try {
             const data = await fetchAlertsData();
-            currentAlerts = Array.isArray(data) ? data : [];
+            currentAlerts = Array.isArray(data) ? data.map((alert) => ({
+                ...alert,
+                origin: alert.origin ? alert.origin : 'Banco'
+            })) : [];
+
+            const severityPriority = { high: 0, medium: 1, low: 2, info: 3 };
+            currentAlerts.sort((a, b) => {
+                const aSeverity = severityPriority[String(a.severity || '').toLowerCase()] ?? 4;
+                const bSeverity = severityPriority[String(b.severity || '').toLowerCase()] ?? 4;
+                if (aSeverity !== bSeverity) return aSeverity - bSeverity;
+                const aOrigin = String(a.origin || '').toLowerCase();
+                const bOrigin = String(b.origin || '').toLowerCase();
+                if (aOrigin !== bOrigin) {
+                    return aOrigin === 'auditoria firewall' ? -1 : bOrigin === 'auditoria firewall' ? 1 : 0;
+                }
+                return String(b.timestamp || '').localeCompare(String(a.timestamp || ''));
+            });
         } catch (error) {
             currentAlerts = [];
             if (tableBody) {
@@ -769,10 +911,10 @@ async function renderRulesTable() {
                 return false;
             }
             const alertDate = parseAlertDate(alert.timestamp);
-            if (fromDate && alertDate < fromDate) {
+            if (fromDate && alertDate && alertDate < fromDate) {
                 return false;
             }
-            if (toDate && alertDate > toDate) {
+            if (toDate && alertDate && alertDate > toDate) {
                 return false;
             }
             return true;
@@ -801,6 +943,11 @@ async function renderRulesTable() {
             const tdType = document.createElement("td");
             tdType.textContent = alert.type;
             tr.appendChild(tdType);
+
+            // Origem
+            const tdOrigin = document.createElement("td");
+            tdOrigin.textContent = formatAlertOrigin(alert.origin);
+            tr.appendChild(tdOrigin);
 
             // Descrição
             const tdDesc = document.createElement("td");
@@ -877,14 +1024,38 @@ async function renderRulesTable() {
 
     const handleExportLogs = (event) => {
         event.preventDefault();
-        const logs = [
-            ["ID", "Timestamp", "Origem", "Destino", "Status"],
-            ["1", "2026-03-15 10:00:00", "192.168.1.10", "10.0.0.1", "OK"],
-            ["2", "2026-03-15 10:05:32", "10.0.0.5", "172.16.0.8", "Bloqueado"],
-            ["3", "2026-03-15 10:12:08", "192.168.1.20", "8.8.8.8", "Alerta"],
-            ["4", "2026-03-15 10:20:45", "10.0.0.15", "172.16.0.5", "OK"],
+        const logs = currentAlerts.length ? currentAlerts : [
+            {
+                id: 1,
+                timestamp: '2026-03-15 10:00:00',
+                origin: '192.168.1.10',
+                type: 'Tráfego suspeito',
+                severity: 'High',
+                status: 'OK'
+            },
+            {
+                id: 2,
+                timestamp: '2026-03-15 10:05:32',
+                origin: '10.0.0.5',
+                type: 'Port Scan',
+                severity: 'Medium',
+                status: 'Bloqueado'
+            }
         ];
-        const csv = logs.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(",")).join("\n");
+
+        const rows = [
+            ["ID", "Timestamp", "Origem", "Tipo", "Severidade", "Status"],
+            ...logs.map(log => [
+                String(log.id || ''),
+                String(log.timestamp || ''),
+                formatAlertOrigin(log.origin),
+                String(log.type || ''),
+                String(log.severity || ''),
+                String(log.status || '')
+            ])
+        ];
+
+        const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
         downloadFile("logs-export.csv", csv);
     };
 

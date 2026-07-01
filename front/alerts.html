@@ -51,6 +51,13 @@
                     <span>Monitoramento</span>
                 </a>
             </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="audit.html">
+                    <i class="fas fa-fw fa-file-shield"></i>
+                    <span>Firewall</span>
+                </a>
+            </li>
         </ul>
 
         <div id="content-wrapper" class="d-flex flex-column">
@@ -175,6 +182,7 @@
                                                     <th>ID</th>
                                                     <th>Timestamp</th>
                                                     <th>Tipo</th>
+                                                    <th>Origem</th>
                                                     <th>Descrição</th>
                                                     <th>Severidade</th>
                                                     <th>Status</th>
@@ -186,6 +194,7 @@
                                                     <td>1</td>
                                                     <td>2026-03-15 10:00:00</td>
                                                     <td>Suspicious Traffic</td>
+                                                    <td>Banco</td>
                                                     <td>High volume from unknown IP 192.168.1.100</td>
                                                     <td><span class="badge badge-danger">High</span></td>
                                                     <td>Ativo</td>
@@ -195,6 +204,7 @@
                                                     <td>2</td>
                                                     <td>2026-03-15 10:05:00</td>
                                                     <td>Port Scan</td>
+                                                    <td>Banco</td>
                                                     <td>Multiple port attempts from IP 10.0.0.5</td>
                                                     <td><span class="badge badge-warning">Medium</span></td>
                                                     <td>Resolvido</td>
@@ -204,6 +214,7 @@
                                                     <td>3</td>
                                                     <td>2026-03-15 10:10:00</td>
                                                     <td>Anomaly Detected</td>
+                                                    <td>Interno</td>
                                                     <td>Unusual pattern in network traffic from subnet 192.168.1.0/24</td>
                                                     <td><span class="badge badge-success">Low</span></td>
                                                     <td>Ativo</td>
@@ -213,6 +224,7 @@
                                                     <td>4</td>
                                                     <td>2026-03-15 09:45:00</td>
                                                     <td>Suspicious Traffic</td>
+                                                    <td>Interno</td>
                                                     <td>Abnormal data transfer rate detected</td>
                                                     <td><span class="badge badge-danger">High</span></td>
                                                     <td>Ativo</td>
@@ -252,13 +264,15 @@
                 </div>
 
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3"><h6 class="m-0 font-weight-bold text-primary">Logs de Segurança em Tempo Real</h6></div>
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Logs de Segurança</h6>
+                    </div>
                     <div class="card-body">
                         <table class="table table-hover">
                             <thead><tr><th>Timestamp</th><th>Origem</th><th>Tipo</th><th>Severidade</th><th>Ação</th></tr></thead>
                             <tbody>
-                                <tr><td>10:00</td><td>192.168.1.5</td><td>SQL Injection</td><td><span class="badge badge-danger">Crítico</span></td><td><button class="btn btn-sm btn-danger block-ip-btn">Bloquear</button></td></tr>
-                                <tr><td>10:05</td><td>10.0.0.12</td><td>Port Scan</td><td><span class="badge badge-warning">Médio</span></td><td><button class="btn btn-sm btn-info investigate-btn">Investigar</button></td></tr>
+                                <tr><td>10:00</td><td>Sistema</td><td>SQL Injection</td><td><span class="badge badge-danger">Crítico</span></td><td><button class="btn btn-sm btn-danger block-ip-btn">Bloquear</button></td></tr>
+                                <tr><td>10:05</td><td>Sistema</td><td>Port Scan</td><td><span class="badge badge-warning">Médio</span></td><td><button class="btn btn-sm btn-info investigate-btn">Investigar</button></td></tr>
                             </tbody>
                         </table>
                     </div>

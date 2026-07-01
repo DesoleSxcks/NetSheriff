@@ -81,6 +81,14 @@
                 </a>
             </li>
 
+            <!-- Nav Item - Firewall -->
+            <li class="nav-item">
+                <a class="nav-link" href="audit.html">
+                    <i class="fas fa-fw fa-file-shield"></i>
+                    <span>Firewall</span>
+                </a>
+            </li>
+
             <!-- Divider -->
             <hr class="sidebar-divider d-none d-md-block">
 
@@ -318,6 +326,25 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card border-left-secondary shadow h-100 py-2">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Firewall</div>
+                                            <div id="auditSummaryStatus" class="h5 mb-0 font-weight-bold text-gray-800">Carregando...</div>
+                                            <div id="auditSummaryText" class="text-xs text-muted">Aguardando análise</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-file-shield fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <a href="audit.html" class="btn btn-sm btn-outline-secondary">Ver Firewall</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Dashboard Overview -->
@@ -336,11 +363,12 @@
                                                     <th>ID</th>
                                                     <th>Timestamp</th>
                                                     <th>Tipo</th>
+                                                    <th>Origem</th>
                                                     <th>Descrição</th>
                                                     <th>Severidade</th>
                                                 </tr>
                                             </thead>
-                                            <tbody>
+                                            <tbody id="dashboardAlertsTableBody">
                                             </tbody>
                                         </table>
                                     </div>
