@@ -2,7 +2,7 @@
 // gráficos de tráfego/severidade e exportação em CSV.
 
 import { fetchAlertsData } from './api.js';
-import { showNotification, setTableStatusMessage, getPortugueseMessage, formatAlertOrigin, matchesQuery, downloadFile, tableToCsv } from './utils.js';
+import { showNotification, setTableStatusMessage, getPortugueseMessage, formatAlertOrigin, matchesQuery, downloadFile, tableToCsv, normalizeSeverity } from './utils.js';
 import { registerSearchFilter, getSearchQuery, filterTableRows } from './search.js';
 
 const ALERTS_TABLE_COLUMNS = 8;
@@ -27,13 +27,14 @@ async function fetchAlerts() {
         const data = await fetchAlertsData();
         currentAlerts = Array.isArray(data) ? data.map((alert) => ({
             ...alert,
+            severity: normalizeSeverity(alert.severity),
             origin: alert.origin ? alert.origin : 'Banco'
         })) : [];
 
-        const severityPriority = { high: 0, medium: 1, low: 2, info: 3 };
+        const severityPriority = { High: 0, Medium: 1, Low: 2, Info: 3 };
         currentAlerts.sort((a, b) => {
-            const aSeverity = severityPriority[String(a.severity || '').toLowerCase()] ?? 4;
-            const bSeverity = severityPriority[String(b.severity || '').toLowerCase()] ?? 4;
+            const aSeverity = severityPriority[a.severity] ?? 4;
+            const bSeverity = severityPriority[b.severity] ?? 4;
             if (aSeverity !== bSeverity) return aSeverity - bSeverity;
             const aOrigin = String(a.origin || '').toLowerCase();
             const bOrigin = String(b.origin || '').toLowerCase();
@@ -63,7 +64,6 @@ function getFilterValue(id) {
 
 function filterAlerts() {
     const severity = getFilterValue('severityFilter');
-    const type = getFilterValue('typeFilter');
     const from = getFilterValue('dateFromFilter');
     const to = getFilterValue('dateToFilter');
     const fromDate = from ? new Date(from) : null;
@@ -71,9 +71,6 @@ function filterAlerts() {
 
     return currentAlerts.filter(alert => {
         if (severity && severity !== 'all' && alert.severity !== severity) {
-            return false;
-        }
-        if (type && type !== 'all' && alert.type !== type) {
             return false;
         }
         const alertDate = parseAlertDate(alert.timestamp);
@@ -143,8 +140,10 @@ function renderAlertsTable(alerts) {
             span.classList.add('badge', 'badge-danger');
         } else if (alert.severity === 'Medium') {
             span.classList.add('badge', 'badge-warning');
-        } else {
+        } else if (alert.severity === 'Low') {
             span.classList.add('badge', 'badge-success');
+        } else {
+            span.classList.add('badge', 'badge-secondary');
         }
         tdSev.appendChild(span);
         tr.appendChild(tdSev);
@@ -227,7 +226,10 @@ async function renderAlertsCharts() {
 
     try {
         const alertsData = await fetchAlertsData();
-        const alerts = Array.isArray(alertsData) ? alertsData : [];
+        const alerts = Array.isArray(alertsData) ? alertsData.map((alert) => ({
+            ...alert,
+            severity: normalizeSeverity(alert.severity)
+        })) : [];
 
         destroyAlertsCharts();
 
@@ -269,8 +271,8 @@ async function renderAlertsCharts() {
         }
 
         const severityCounts = alerts.reduce((acc, alert) => {
-            const severity = String(alert?.severity || 'Unknown').trim();
-            if (!severity || severity === 'Unknown') {
+            const severity = normalizeSeverity(alert?.severity);
+            if (!severity) {
                 return acc;
             }
             acc[severity] = (acc[severity] || 0) + 1;
@@ -282,7 +284,8 @@ async function renderAlertsCharts() {
         const severityColors = {
             High: '#e74a3b',
             Medium: '#f6c23e',
-            Low: '#36b9cc'
+            Low: '#36b9cc',
+            Info: '#858796'
         };
 
         if (severityLabels.length && severityValues.some((value) => value > 0)) {
@@ -337,7 +340,7 @@ function handleExportAlerts(event) {
 }
 
 function attachAlertFilterListeners() {
-    ['severityFilter', 'typeFilter', 'dateFromFilter', 'dateToFilter'].forEach((id) => {
+    ['severityFilter', 'dateFromFilter', 'dateToFilter'].forEach((id) => {
         const element = document.getElementById(id);
         if (element) {
             element.addEventListener('change', updateAlertFilters);

@@ -140,26 +140,19 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
-                                        <div class="col-md-3 mb-3">
+                                        <div class="col-md-4 mb-3">
                                             <select id="severityFilter" class="form-control">
                                                 <option value="all">Severidade: Todas</option>
                                                 <option value="High">High</option>
                                                 <option value="Medium">Medium</option>
                                                 <option value="Low">Low</option>
+                                                <option value="Info">Info</option>
                                             </select>
                                         </div>
-                                        <div class="col-md-3 mb-3">
-                                            <select id="typeFilter" class="form-control">
-                                                <option value="all">Tipo: Todos</option>
-                                                <option value="Suspicious Traffic">Suspicious Traffic</option>
-                                                <option value="Port Scan">Port Scan</option>
-                                                <option value="Anomaly Detected">Anomaly Detected</option>
-                                            </select>
-                                        </div>
-                                        <div class="col-md-3 mb-3">
+                                        <div class="col-md-4 mb-3">
                                             <input id="dateFromFilter" type="date" class="form-control" placeholder="Data Inicial">
                                         </div>
-                                        <div class="col-md-3 mb-3">
+                                        <div class="col-md-4 mb-3">
                                             <input id="dateToFilter" type="date" class="form-control" placeholder="Data Final">
                                         </div>
                                     </div>
@@ -272,8 +265,8 @@
                         <table class="table table-hover">
                             <thead><tr><th>Timestamp</th><th>Origem</th><th>Tipo</th><th>Severidade</th><th>Ação</th></tr></thead>
                             <tbody>
-                                <tr><td>10:00</td><td>Sistema</td><td>SQL Injection</td><td><span class="badge badge-danger">Crítico</span></td><td><button class="btn btn-sm btn-danger block-ip-btn">Bloquear</button></td></tr>
-                                <tr><td>10:05</td><td>Sistema</td><td>Port Scan</td><td><span class="badge badge-warning">Médio</span></td><td><button class="btn btn-sm btn-info investigate-btn">Investigar</button></td></tr>
+                                <tr><td>10:00</td><td>Sistema</td><td>SQL Injection</td><td><span class="badge badge-danger">High</span></td><td><button class="btn btn-sm btn-danger block-ip-btn">Bloquear</button></td></tr>
+                                <tr><td>10:05</td><td>Sistema</td><td>Port Scan</td><td><span class="badge badge-warning">Medium</span></td><td><button class="btn btn-sm btn-info investigate-btn">Investigar</button></td></tr>
                             </tbody>
                         </table>
                     </div>

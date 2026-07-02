@@ -161,6 +161,17 @@ export function formatAlertOrigin(origin) {
     return origin;
 }
 
+export function normalizeSeverity(severity) {
+    const value = normalizeText(severity).trim();
+
+    if (['high', 'critical', 'critico'].includes(value)) return 'High';
+    if (['medium', 'medio'].includes(value)) return 'Medium';
+    if (['low', 'baixo'].includes(value)) return 'Low';
+    if (['info', 'informativo'].includes(value)) return 'Info';
+
+    return 'Info';
+}
+
 export function downloadFile(filename, content, mimeType = 'text/csv;charset=utf-8;') {
     const blob = new Blob([content], { type: mimeType });
     const link = document.createElement('a');
@@ -189,7 +200,9 @@ export function normalizeText(value) {
     return String(value ?? '')
         .toLowerCase()
         .normalize('NFD')
-        .replace(/[̀-ͯ]/g, '');
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 // Verifica se algum dos campos contém o termo buscado.

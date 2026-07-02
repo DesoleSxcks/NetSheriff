@@ -1,3 +1,5 @@
+import { normalizeSeverity } from './utils.js';
+
 const BASE_URL = "http://localhost:3000/api";
 const DEMO_AUTH_KEY = 'demoAuth';
 const AUTH_USER_KEY = 'authUser';
@@ -328,12 +330,17 @@ export async function fetchAlertsData() {
   const alerts = Array.isArray(alertsResult.value) ? alertsResult.value : [];
   const auditAlerts = Array.isArray(auditResult.value?.alerts) ? auditResult.value.alerts.map((alert) => ({
     ...alert,
+    severity: normalizeSeverity(alert.severity),
     origin: alert.origin || 'Auditoria Firewall'
   })) : [];
 
   const merged = [
     ...limitAuditAlerts(auditAlerts, 5),
-    ...alerts.map((alert) => ({ ...alert, origin: alert.origin || 'Banco' }))
+    ...alerts.map((alert) => ({
+      ...alert,
+      severity: normalizeSeverity(alert.severity),
+      origin: alert.origin || 'Banco'
+    }))
   ];
 
   return sortBySeverity(merged);

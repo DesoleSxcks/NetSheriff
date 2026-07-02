@@ -21,6 +21,43 @@ function getFindings(data) {
   return Array.isArray(data?.findings) ? data.findings : [];
 }
 
+function getChains(data) {
+  return Array.isArray(data?.chains) ? data.chains : [];
+}
+
+function getRuleSearchFields(chain, rule) {
+  return [
+    chain.name,
+    chain.policy,
+    rule.raw,
+    rule.protocol,
+    rule.destinationPort,
+    rule.source,
+    rule.destination,
+    rule.target,
+    `${chain.name} ${chain.policy || ''} ${rule.raw || ''} ${rule.protocol || ''} ${rule.destinationPort || ''} ${rule.target || ''}`
+  ];
+}
+
+function filterChains(chains, query) {
+  if (!query) return chains;
+
+  return chains.reduce((filtered, chain) => {
+    const rules = Array.isArray(chain.rules) ? chain.rules : [];
+    const chainMatches = matchesQuery([chain.name, chain.policy], query);
+    const matchingRules = rules.filter((rule) => matchesQuery(getRuleSearchFields(chain, rule), query));
+
+    if (chainMatches || matchingRules.length) {
+      filtered.push({
+        ...chain,
+        rules: chainMatches ? rules : matchingRules
+      });
+    }
+
+    return filtered;
+  }, []);
+}
+
 function filterFindings(findings, query) {
   return findings.filter((finding) => matchesQuery([
     finding.title,
@@ -29,6 +66,37 @@ function filterFindings(findings, query) {
     finding.origin,
     finding.recommendation
   ], query));
+}
+
+function renderChains(chains, searching) {
+  const chainsListEl = document.getElementById('auditChainsList');
+  if (!chainsListEl) return;
+
+  if (!lastAuditData?.available) {
+    chainsListEl.innerHTML = '<div class="text-muted">Dados reais do firewall indisponíveis. O comando iptables exige permissão administrativa no Linux.</div>';
+    return;
+  }
+
+  if (!chains.length) {
+    chainsListEl.innerHTML = `<div class="text-muted">${searching ? 'Nenhum resultado encontrado.' : 'Nenhuma chain encontrada.'}</div>`;
+    return;
+  }
+
+  chainsListEl.innerHTML = chains.map((chain) => {
+    const rules = Array.isArray(chain.rules) ? chain.rules : [];
+
+    return `
+      <div class="border rounded p-3 mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>${chain.name}</strong>
+          <span class="badge badge-secondary">Policy: ${chain.policy || 'UNDEFINED'}</span>
+        </div>
+        ${rules.length ? rules.map((rule) => `
+          <div class="small text-muted mb-1">
+            <code>${rule.raw || ''}</code>
+          </div>`).join('') : '<div class="text-muted small">Sem regras registradas.</div>'}
+      </div>`;
+  }).join('');
 }
 
 function renderFindings(findings, searching) {
@@ -56,8 +124,11 @@ function renderFindings(findings, searching) {
 }
 
 function applyAuditSearch(query) {
-  const findings = getFindings(lastAuditData);
-  renderFindings(filterFindings(findings, query), Boolean(query));
+  if (!lastAuditData) return;
+
+  const searching = Boolean(query);
+  renderChains(filterChains(getChains(lastAuditData), query), searching);
+  renderFindings(filterFindings(getFindings(lastAuditData), query), searching);
 }
 
 function renderAudit(data) {
@@ -68,7 +139,6 @@ function renderAudit(data) {
   const chainsEl = document.getElementById('auditChains');
   const rulesEl = document.getElementById('auditRules');
   const messageEl = document.getElementById('auditMessage');
-  const chainsListEl = document.getElementById('auditChainsList');
 
   if (!data) {
     if (statusEl) statusEl.textContent = 'Indisponível';
@@ -107,24 +177,6 @@ function renderAudit(data) {
           ${data.reason || ''}<br>
           ${data.recommendation || ''}
         </div>`;
-    }
-  }
-
-  if (chainsListEl) {
-    if (!data.available || !Array.isArray(data.chains) || !data.chains.length) {
-      chainsListEl.innerHTML = '<div class="text-muted">Dados reais do firewall indisponíveis. O comando iptables exige permissão administrativa no Linux.</div>';
-    } else {
-      chainsListEl.innerHTML = data.chains.map((chain) => `
-        <div class="border rounded p-3 mb-3">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <strong>${chain.name}</strong>
-            <span class="badge badge-secondary">Policy: ${chain.policy || 'UNDEFINED'}</span>
-          </div>
-          ${chain.rules.length ? chain.rules.map((rule) => `
-            <div class="small text-muted mb-1">
-              <code>${rule.raw || ''}</code>
-            </div>`).join('') : '<div class="text-muted small">Sem regras registradas.</div>'}
-        </div>`).join('');
     }
   }
 
