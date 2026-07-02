@@ -1,15 +1,23 @@
-function buildErrorMessages(target, schema) {
+function buildErrorMessages(target, schema, options = {}) {
   const errors = [];
+  const partial = Boolean(options.partial);
 
   for (const [field, rule] of Object.entries(schema)) {
     const value = target[field];
 
-    if (rule.required && (value === undefined || value === null || (typeof value === 'string' && value.trim() === ''))) {
+    if (value === undefined) {
+      if (!partial && rule.required) {
+        errors.push(`${field} é obrigatório`);
+      }
+      continue;
+    }
+
+    if (rule.required && (value === null || (typeof value === 'string' && value.trim() === ''))) {
       errors.push(`${field} é obrigatório`);
       continue;
     }
 
-    if (value === undefined || value === null) {
+    if (value === null) {
       continue;
     }
 
@@ -76,6 +84,19 @@ function sanitizeObject(target, schema) {
 export function validateBody(schema) {
   return (req, res, next) => {
     const errors = buildErrorMessages(req.body ?? {}, schema);
+
+    if (errors.length > 0) {
+      return res.status(400).json({ error: 'Dados inválidos', details: errors });
+    }
+
+    req.body = sanitizeObject(req.body ?? {}, schema);
+    next();
+  };
+}
+
+export function validatePartialBody(schema) {
+  return (req, res, next) => {
+    const errors = buildErrorMessages(req.body ?? {}, schema, { partial: true });
 
     if (errors.length > 0) {
       return res.status(400).json({ error: 'Dados inválidos', details: errors });

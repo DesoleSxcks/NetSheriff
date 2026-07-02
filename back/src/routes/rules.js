@@ -1,7 +1,7 @@
 import express from 'express'
 import prisma from '../lib/prisma.js'
 import { asyncHandler } from '../lib/errorHandler.js'
-import { validateBody, validateParams } from '../lib/validation.js'
+import { validateBody, validateParams, validatePartialBody } from '../lib/validation.js'
 
 const router = express.Router()
 
@@ -65,6 +65,22 @@ router.put('/:id', validateParams(ruleIdSchema), validateBody(ruleSchema), async
       action,
       status
     }
+  })
+
+  res.json(rule)
+}))
+
+router.patch('/:id', validateParams(ruleIdSchema), validatePartialBody(ruleSchema), asyncHandler(async (req, res) => {
+  const id = Number(req.params.id)
+  const updates = req.body
+
+  if (!updates || Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: 'Nenhum campo enviado para atualização' })
+  }
+
+  const rule = await prisma.rule.update({
+    where: { id },
+    data: updates
   })
 
   res.json(rule)

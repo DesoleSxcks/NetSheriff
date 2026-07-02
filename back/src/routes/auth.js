@@ -85,14 +85,14 @@ router.post('/login', validateBody(loginSchema), asyncHandler(async (req, res) =
 
   if (!user) {
     logger.warn(`Login attempted with non-existent email: ${email}`);
-    return res.status(401).json({ error: 'Email ou senha inválidos' });
+    return res.status(401).json({ error: 'Login ou senha errados' });
   }
 
   const isPasswordValid = await verifyPassword(password, user.password);
 
   if (!isPasswordValid) {
     logger.warn(`Failed login attempt for user: ${email}`);
-    return res.status(401).json({ error: 'Email ou senha inválidos' });
+    return res.status(401).json({ error: 'Login ou senha errados' });
   }
 
   logger.info(`User logged in: ${email}`);

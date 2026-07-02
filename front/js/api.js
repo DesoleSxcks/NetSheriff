@@ -69,13 +69,16 @@ function clearAuthData() {
   localStorage.removeItem(DEMO_AUTH_KEY);
 }
 
-function getHttpErrorMessage(response, data) {
+function getHttpErrorMessage(response, data, path) {
   const fallback = data?.error || data?.message || response.statusText || 'Erro na requisição';
 
   switch (response.status) {
     case 400:
       return data?.details?.length ? `${fallback}: ${data.details.join(' • ')}` : 'Requisição inválida.';
     case 401:
+      if (path === '/auth/login') {
+        return data?.error || 'Login ou senha errados.';
+      }
       return 'Sessão expirada. Faça login novamente.';
     case 403:
       return 'Você não tem permissão para esta ação.';
@@ -160,7 +163,7 @@ async function requestJson(path, options = {}) {
         return null;
       }
 
-      if (options.method === 'PUT') {
+      if (options.method === 'PUT' || options.method === 'PATCH') {
         const payload = options.body ? JSON.parse(options.body) : {};
         const updatedRule = {
           ...currentRule,
@@ -201,7 +204,7 @@ async function requestJson(path, options = {}) {
   }
 
   if (!response.ok) {
-    const message = getHttpErrorMessage(response, data);
+    const message = getHttpErrorMessage(response, data, path);
     const error = new Error(message);
     error.status = response.status;
     error.data = data;
@@ -276,7 +279,10 @@ export async function updateRule(id, updates) {
 }
 
 export async function updateRuleStatus(id, status) {
-  return await updateRule(id, { status });
+  return await requestJson(`/rules/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
 }
 
 export async function updateRuleName(id, name) {
