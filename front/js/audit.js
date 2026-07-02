@@ -1,4 +1,12 @@
-import { fetchIptablesAudit, getCurrentUser, isAuthenticated, logout } from './api.js';
+// Página de auditoria (audit.html): consulta a auditoria do iptables e
+// renderiza resumo, chains, achados e recomendações, com busca nos achados.
+
+import { fetchIptablesAudit } from './api.js';
+import { requireAuth, initLayout } from './main.js';
+import { initSearchBar, registerSearchFilter, getSearchQuery } from './search.js';
+import { matchesQuery } from './utils.js';
+
+let lastAuditData = null;
 
 function getRiskBadgeClass(level) {
   switch (level) {
@@ -9,15 +17,58 @@ function getRiskBadgeClass(level) {
   }
 }
 
+function getFindings(data) {
+  return Array.isArray(data?.findings) ? data.findings : [];
+}
+
+function filterFindings(findings, query) {
+  return findings.filter((finding) => matchesQuery([
+    finding.title,
+    finding.description,
+    finding.severity,
+    finding.origin,
+    finding.recommendation
+  ], query));
+}
+
+function renderFindings(findings, searching) {
+  const findingsEl = document.getElementById('auditFindings');
+  const recommendationsEl = document.getElementById('auditRecommendations');
+  const emptyMessage = searching ? 'Nenhum resultado encontrado.' : 'Nenhum achado de auditoria registrado.';
+
+  if (findingsEl) {
+    findingsEl.innerHTML = findings.length ? findings.map((finding) => `
+      <div class="border-left-${finding.severity === 'high' ? 'danger' : finding.severity === 'medium' ? 'warning' : 'info'} border-left pl-3 mb-3">
+        <div class="font-weight-bold">${finding.title}</div>
+        <div class="small text-muted">${finding.description}</div>
+        <div class="small mt-1"><strong>Severidade:</strong> <span class="badge ${getRiskBadgeClass(finding.severity)}">${finding.severity}</span></div>
+        <div class="small mt-1"><strong>Origem:</strong> ${finding.origin || 'iptables'}</div>
+      </div>`).join('') : `<div class="text-muted">${emptyMessage}</div>`;
+  }
+
+  if (recommendationsEl) {
+    recommendationsEl.innerHTML = findings.length ? findings.map((finding) => `
+      <div class="alert alert-light border mb-2">
+        <div class="small"><strong>${finding.title}</strong></div>
+        <div class="small text-muted">${finding.recommendation || 'Revisar configuração.'}</div>
+      </div>`).join('') : `<div class="text-muted">${searching ? 'Nenhum resultado encontrado.' : 'Nenhuma recomendação disponível.'}</div>`;
+  }
+}
+
+function applyAuditSearch(query) {
+  const findings = getFindings(lastAuditData);
+  renderFindings(filterFindings(findings, query), Boolean(query));
+}
+
 function renderAudit(data) {
+  lastAuditData = data;
+
   const statusEl = document.getElementById('auditStatus');
   const riskEl = document.getElementById('auditRisk');
   const chainsEl = document.getElementById('auditChains');
   const rulesEl = document.getElementById('auditRules');
   const messageEl = document.getElementById('auditMessage');
   const chainsListEl = document.getElementById('auditChainsList');
-  const findingsEl = document.getElementById('auditFindings');
-  const recommendationsEl = document.getElementById('auditRecommendations');
 
   if (!data) {
     if (statusEl) statusEl.textContent = 'Indisponível';
@@ -27,7 +78,7 @@ function renderAudit(data) {
   }
 
   const rules = Array.isArray(data.rules) ? data.rules : [];
-  const findings = Array.isArray(data.findings) ? data.findings : [];
+  const findings = getFindings(data);
   const monitoring = data.monitoring || {};
 
   if (statusEl) {
@@ -77,23 +128,7 @@ function renderAudit(data) {
     }
   }
 
-  if (findingsEl) {
-    findingsEl.innerHTML = findings.length ? findings.map((finding) => `
-      <div class="border-left-${finding.severity === 'high' ? 'danger' : finding.severity === 'medium' ? 'warning' : 'info'} border-left pl-3 mb-3">
-        <div class="font-weight-bold">${finding.title}</div>
-        <div class="small text-muted">${finding.description}</div>
-        <div class="small mt-1"><strong>Severidade:</strong> <span class="badge ${getRiskBadgeClass(finding.severity)}">${finding.severity}</span></div>
-        <div class="small mt-1"><strong>Origem:</strong> ${finding.origin || 'iptables'}</div>
-      </div>`).join('') : '<div class="text-muted">Nenhum achado de auditoria registrado.</div>';
-  }
-
-  if (recommendationsEl) {
-    recommendationsEl.innerHTML = findings.length ? findings.map((finding) => `
-      <div class="alert alert-light border mb-2">
-        <div class="small"><strong>${finding.title}</strong></div>
-        <div class="small text-muted">${finding.recommendation || 'Revisar configuração.'}</div>
-      </div>`).join('') : '<div class="text-muted">Nenhuma recomendação disponível.</div>';
-  }
+  applyAuditSearch(getSearchQuery());
 }
 
 async function loadAudit() {
@@ -111,28 +146,11 @@ async function loadAudit() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const currentPath = window.location.pathname;
-  const pageName = currentPath.split('/').filter(Boolean).pop() || 'index.html';
-  const protectedPages = ['index.html', 'alerts.html', 'rules.html', 'monitoring.html', 'audit.html'];
+  if (!requireAuth()) return;
 
-  if (protectedPages.includes(pageName) && !isAuthenticated()) {
-    window.location.replace('login.html');
-    return;
-  }
-
-  const userDisplayElements = document.querySelectorAll('#userDisplayName');
-  const user = getCurrentUser();
-  userDisplayElements.forEach((element) => {
-    element.textContent = user?.name || 'Administrador';
-  });
-
-  document.querySelectorAll('#logoutModal a[href="login.html"]').forEach((link) => {
-    link.addEventListener('click', (event) => {
-      event.preventDefault();
-      logout();
-      window.location.href = 'login.html';
-    });
-  });
+  initLayout();
+  initSearchBar();
+  registerSearchFilter(applyAuditSearch);
 
   loadAudit();
 });
